@@ -55,12 +55,15 @@ maybe_set_cdp_endpoint() {
 
 load_local_env
 
+KOMODO_USER_AGENT="${KOMODO_USER_AGENT:-Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36}"
+export KOMODO_USER_AGENT
+
 fetch_json() {
   name="$1"
   url="$2"
   allow_fallback="${3:-1}"
   tmp="$OUT_DIR/$name.json.tmp"
-  if curl -A 'Mozilla/5.0' --retry 1 --retry-delay 1 --max-time 12 -fsSL "$url" > "$tmp" 2>/dev/null \
+  if curl -A "$KOMODO_USER_AGENT" --retry 1 --retry-delay 1 --max-time 12 -fsSL "$url" > "$tmp" 2>/dev/null \
     && jq empty "$tmp" >/dev/null 2>&1; then
     mv "$tmp" "$OUT_DIR/$name.json"
     return 0

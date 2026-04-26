@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import os
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -19,6 +20,12 @@ VISUAL_EXTS = {
     ".mov",
     ".m4v",
 }
+
+DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/123.0.0.0 Safari/537.36"
+)
 
 
 def is_visual_url(url: str) -> bool:
@@ -167,7 +174,10 @@ def is_valid_download(url: str, content_type: str, data: bytes):
 
 def download(url: str, dest: Path):
     dest.parent.mkdir(parents=True, exist_ok=True)
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": os.environ.get("KOMODO_USER_AGENT", DEFAULT_USER_AGENT)},
+    )
     with urllib.request.urlopen(req, timeout=15) as response:
         data = response.read()
         status = getattr(response, "status", 200)

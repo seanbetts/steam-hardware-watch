@@ -23,6 +23,11 @@ function launchOptions(headless) {
   return options;
 }
 
+function userAgent() {
+  return process.env.KOMODO_USER_AGENT ||
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
+}
+
 function findKomodoPage(context, origin) {
   const pages = context.pages();
   return pages.find((candidate) => candidate.url().startsWith(origin)) || pages[0] || null;
@@ -66,7 +71,7 @@ async function main() {
   } else if (profileDir) {
     context = await chromium.launchPersistentContext(profileDir, {
       ...launchOptions(headless),
-      userAgent: "Mozilla/5.0",
+      userAgent: userAgent(),
     });
     shouldCloseContext = true;
     page = context.pages()[0] || await context.newPage();
@@ -74,7 +79,7 @@ async function main() {
     browser = await chromium.launch(launchOptions(headless));
     shouldCloseBrowser = true;
     context = await browser.newContext({
-      userAgent: "Mozilla/5.0",
+      userAgent: userAgent(),
       storageState: storageState || undefined,
       extraHTTPHeaders: referer ? { Referer: referer } : undefined,
     });
