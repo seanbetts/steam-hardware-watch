@@ -1,0 +1,4 @@
+version: 1
+display_name: Steam Hardware Watch
+short_description: Reusable workflow for monitoring Valve hardware launch signals across Komodo, SteamDB, SteamTracking, Valve endpoints, and related evidence sources.
+default_prompt: Check the current status of rumored or upcoming Valve hardware, save artifacts, and update the status ledger.

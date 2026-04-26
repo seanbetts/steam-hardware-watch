@@ -1,0 +1,28 @@
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+
+# Local agent/browser state
+.local/
+profiles/
+playwright-profile/
+auth/
+*.state.json
+*.storage.json
+
+# Ad hoc run output if someone chooses to place it inside the repo
+artifacts/
+output/
+runs/
+tmp/
+scratch/
+
+# Playwright and browser leftovers
+.playwright/
+playwright-report/
+
+# Media and extracted frames kept outside normal repo state
+frames/
+downloads/
