@@ -95,6 +95,18 @@ scripts/run_watch.sh 2026-04-25 ~/steam_hardware_watch /tmp/SteamTracking-master
 
 This creates a dated run folder under `~/steam_hardware_watch/2026-04-25`.
 
+### Common Path
+
+For the least disruptive Komodo flow, use the dedicated background browser bootstrap:
+
+```sh
+scripts/bootstrap_komodo.sh
+scripts/run_watch.sh 2026-04-25 ~/steam_hardware_watch /tmp/SteamTracking-master
+scripts/close_komodo.sh
+```
+
+That keeps Komodo access isolated from your normal Chrome profile and gives the agent a reusable trusted browser session when Komodo blocks normal automation.
+
 ## Output
 
 Each run writes:
