@@ -250,33 +250,33 @@ def main():
 
         result = None
         if not dest.exists():
-            if is_protected_komodo_asset(url):
+            try:
+                result = download(url, dest)
+            except urllib.error.HTTPError as err:
+                result = {
+                    "ok": False,
+                    "status": str(err.code),
+                    "content_type": getattr(err, "headers", {}).get_content_type() if getattr(err, "headers", None) else "",
+                    "detected": "http_error",
+                    "expected": expected_family(url),
+                }
+            except Exception as err:
+                result = {
+                    "ok": False,
+                    "status": "error",
+                    "content_type": "",
+                    "detected": type(err).__name__,
+                    "expected": expected_family(url),
+                }
+
+            if not result["ok"] and is_protected_komodo_asset(url):
                 result = {
                     "ok": False,
                     "status": "session_required",
-                    "content_type": unique[url]["mime"],
-                    "detected": "protected_komodo_asset",
-                    "expected": expected_family(url),
+                    "content_type": result["content_type"],
+                    "detected": result["detected"],
+                    "expected": result["expected"],
                 }
-            else:
-                try:
-                    result = download(url, dest)
-                except urllib.error.HTTPError as err:
-                    result = {
-                        "ok": False,
-                        "status": str(err.code),
-                        "content_type": getattr(err, "headers", {}).get_content_type() if getattr(err, "headers", None) else "",
-                        "detected": "http_error",
-                        "expected": expected_family(url),
-                    }
-                except Exception as err:
-                    result = {
-                        "ok": False,
-                        "status": "error",
-                        "content_type": "",
-                        "detected": type(err).__name__,
-                        "expected": expected_family(url),
-                    }
         else:
             result = {
                 "ok": True,
