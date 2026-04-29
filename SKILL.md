@@ -137,6 +137,15 @@ Known IDs and starting points are in [references/sources.md](references/sources.
 
 The helper script saves the raw HTML pages. Summarize only material changes.
 
+If SteamDB returns a Cloudflare challenge, `check_steamdb.sh` should record the source as blocked instead of saving the challenge HTML as a successful page. To retry with a trusted local browser session:
+
+1. run `scripts/bootstrap_steamdb.sh`
+2. complete any manual challenge in the dedicated Chrome window
+3. leave the browser running
+4. rerun the watch, or run `check_steamdb.sh` directly
+
+The helper loads `.local/steamdb-env.sh` automatically and reuses the live browser over CDP when `STEAMDB_PLAYWRIGHT_FALLBACK=1`.
+
 ### 3. SteamTracking / GameTracking
 
 Look for:

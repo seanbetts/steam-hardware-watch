@@ -13,13 +13,19 @@ TRACKING_DIR="${3:-/tmp/SteamTracking-master}"
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 REPO_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 KOMODO_ENV_FILE="${KOMODO_ENV_FILE:-$REPO_DIR/.local/komodo-env.sh}"
+STEAMDB_ENV_FILE="${STEAMDB_ENV_FILE:-$REPO_DIR/.local/steamdb-env.sh}"
 
 cleanup() {
   if [ "${KOMODO_KEEP_BROWSER_OPEN:-0}" = "1" ]; then
-    return 0
-  fi
-  if [ -f "$KOMODO_ENV_FILE" ] && [ -x "$SCRIPT_DIR/close_komodo.sh" ]; then
+    :
+  elif [ -f "$KOMODO_ENV_FILE" ] && [ -x "$SCRIPT_DIR/close_komodo.sh" ]; then
     "$SCRIPT_DIR/close_komodo.sh" >/dev/null 2>&1 || true
+  fi
+
+  if [ "${STEAMDB_KEEP_BROWSER_OPEN:-0}" = "1" ]; then
+    :
+  elif [ -f "$STEAMDB_ENV_FILE" ] && [ -x "$SCRIPT_DIR/close_steamdb.sh" ]; then
+    "$SCRIPT_DIR/close_steamdb.sh" >/dev/null 2>&1 || true
   fi
 }
 

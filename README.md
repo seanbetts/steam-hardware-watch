@@ -107,6 +107,16 @@ scripts/close_komodo.sh
 
 That keeps Komodo access isolated from your normal Chrome profile and gives the agent a reusable trusted browser session when Komodo blocks normal automation.
 
+SteamDB can require the same live-browser treatment:
+
+```sh
+scripts/bootstrap_steamdb.sh
+scripts/run_watch.sh 2026-04-25 ~/steam_hardware_watch /tmp/SteamTracking-master
+scripts/close_steamdb.sh
+```
+
+If both sources are blocked, bootstrap both before the run.
+
 ## Output
 
 Each run writes:
@@ -292,12 +302,60 @@ The helper scripts now support that same live-session route with:
 - `PLAYWRIGHT_CDP_ENDPOINT`
 - automatic local env loading from `.local/komodo-env.sh`
 
+## Optional SteamDB Browser Bootstrap
+
+SteamDB may return a Cloudflare browser challenge to `curl` and to fresh automated browser contexts. The SteamDB helper uses a realistic Chrome user agent by default and rejects challenge HTML instead of saving it as a successful page. When that is not enough, use a dedicated live Chrome session.
+
+Use the bundled helper:
+
+```sh
+scripts/bootstrap_steamdb.sh
+```
+
+This:
+
+- uses a dedicated profile under `.local/`
+- launches a separate Chrome instance in the background
+- exposes a stable CDP endpoint
+- writes `.local/steamdb-env.sh`
+
+If SteamDB needs manual interaction, switch to that dedicated Chrome window, complete the challenge, and leave the browser running.
+
+Then run:
+
+```sh
+scripts/run_watch.sh 2026-04-25 ~/steam_hardware_watch /tmp/SteamTracking-master
+```
+
+`check_steamdb.sh` automatically picks up `.local/steamdb-env.sh` when present. `run_watch.sh` auto-closes the dedicated SteamDB browser at the end unless you set:
+
+```sh
+STEAMDB_KEEP_BROWSER_OPEN=1
+```
+
+When finished:
+
+```sh
+scripts/close_steamdb.sh
+```
+
+Manual equivalent:
+
+```sh
+STEAMDB_PLAYWRIGHT_FALLBACK=1
+STEAMDB_PROFILE_DIR=~/.steam-hardware-watch/playwright-steamdb-profile
+STEAMDB_CDP_ENDPOINT=http://127.0.0.1:PORT
+STEAMDB_BROWSER_CHANNEL=chrome
+```
+
 ## Current Known Limits
 
 - `Komodo` can block both `curl` and fresh browser automation.
+- `SteamDB` can return a Cloudflare browser challenge to curl and fresh automated browser contexts.
 - We can currently discover and report blocked media URLs even when we cannot download them automatically.
 - Exported storage state may still be insufficient for Cloudflare-protected Komodo assets.
 - Live trusted browser attach is currently the strongest repeatable fallback for protected Komodo media.
+- Live trusted browser attach is also the strongest SteamDB fallback when browser-style curl is blocked.
 - The fully non-visual path is not reliable yet; after bootstrap, the working fallback is still a live dedicated browser running in the background.
 
 ## Recommended Workflow
@@ -313,4 +371,5 @@ Escalation:
 
 1. if Komodo blocks, continue the run
 2. use `manual-asset-urls.txt` for manual follow-up
-3. only use the Playwright bootstrap if protected Komodo media is important to the run
+3. if SteamDB blocks, use `scripts/bootstrap_steamdb.sh` and rerun when SteamDB verification is important
+4. only use the Playwright bootstrap if protected Komodo media or SteamDB verification is important to the run
