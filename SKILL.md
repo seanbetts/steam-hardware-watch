@@ -49,6 +49,8 @@ Use the source helpers when available:
 - [scripts/check_komodo.sh](scripts/check_komodo.sh)
 - [scripts/check_steamdb.sh](scripts/check_steamdb.sh)
 - [scripts/check_steamtracking.sh](scripts/check_steamtracking.sh)
+- [scripts/check_steamvr_depots.sh](scripts/check_steamvr_depots.sh)
+- [scripts/check_steamos_mirror.sh](scripts/check_steamos_mirror.sh)
 - [scripts/check_valve_endpoints.sh](scripts/check_valve_endpoints.sh)
 - [scripts/compare_runs.py](scripts/compare_runs.py)
 - [scripts/save_visual_assets.py](scripts/save_visual_assets.py)
@@ -75,8 +77,10 @@ Default source order:
 1. `Komodo`
 2. `SteamDB`
 3. `SteamTracking / GameTracking`
-4. `Valve support / store / CDN`
-5. `customs / regulatory`
+4. `SteamVR depots`
+5. `SteamOS package mirror`
+6. `Valve support / store / CDN`
+7. `customs / regulatory`
 
 Treat price and exact release date as unconfirmed unless directly exposed by a primary source.
 
@@ -158,7 +162,36 @@ Look for:
 
 Only summarize findings that materially affect launch-readiness or architecture inference.
 
-### 4. Valve Support / Store / CDN
+### 4. SteamVR Depots
+
+Check SteamVR app `250820` metadata and any local SteamVR install or downloaded depot snapshots.
+
+Watch for:
+
+- branch/build movement on `public`, `beta`, and `previous`
+- new or changed SteamVR Linux/content depots
+- dashboard, settings, driver, render model, localization, and web UI strings
+- `Steam Frame`, `Frame`, `Deckard`, `Roy`, `XR`, `VR`, `Steam Link VR`, `dongle`, and controller ecosystem terms
+
+Use [scripts/check_steamvr_depots.sh](scripts/check_steamvr_depots.sh). By default it saves public metadata and scans a local SteamVR install if one exists. Set `STEAMVR_SCAN_DIRS` to one or more local install/depot snapshot directories when deeper datamining is needed.
+
+Treat SteamVR depot content as especially high-signal for `Steam Frame` and VR controller clues.
+
+### 5. SteamOS Package Mirror
+
+Check Valve's public SteamOS Arch package mirror.
+
+Watch for:
+
+- new top-level repo namespaces, especially product-specific repos beyond `holo` and `jupiter`
+- `holo-main` versus versioned `holo-*` changes
+- `jupiter-main` versus versioned `jupiter-*` changes
+- source package movement under `sources/`
+- `Fremont`, `Deckard`, `Steam Frame`, `Roy`, `Ibex`, `Triton`, `Lilac`, `XR`, `VR`, `dongle`, firmware, ARM, Snapdragon, or controller terms
+
+Use [scripts/check_steamos_mirror.sh](scripts/check_steamos_mirror.sh). Treat `jupiter` as Steam Deck-specific unless a file or package explicitly mentions another codename. Treat the mirror as stronger evidence for OS/platform integration than for product naming.
+
+### 6. Valve Support / Store / CDN
 
 Run these every time if quick:
 
@@ -172,7 +205,7 @@ Save any newly exposed files.
 The helper script is intentionally conservative. Add extra URLs when new official pages appear.
 Do not treat generic Steam Deck site media as relevant unless it is directly tied to controller, machine, or frame evidence.
 
-### 5. Customs / Regulatory
+### 7. Customs / Regulatory
 
 Run when:
 
@@ -249,7 +282,7 @@ Use [scripts/run_watch.sh](scripts/run_watch.sh) for the normal path.
 It will:
 
 1. initialize the run folder
-2. run the Komodo, SteamDB, SteamTracking, and Valve endpoint checks
+2. run the Komodo, SteamDB, SteamTracking, SteamVR depot, SteamOS mirror, and Valve endpoint checks
 3. auto-detect the previous run folder when possible
 4. write a comparison report into the current run folder
 5. save discovered visual assets into the current run folder

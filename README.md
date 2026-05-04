@@ -9,6 +9,7 @@ Agent-oriented monitoring workflow for rumored or upcoming Valve hardware, focus
 It is designed to be run by a coding agent through the included `SKILL.md`, with scripts that:
 
 - check `Komodo`, `SteamDB`, `SteamTracking`, and Valve endpoints
+- check `SteamVR` depot metadata and the public SteamOS package mirror
 - save raw artifacts for each run
 - compare against the previous run
 - draft a human-readable status update
@@ -127,10 +128,12 @@ Each run writes:
 - `run-summary.md`
 - `status-draft.md`
 - visual asset ledgers:
-  - `discovered-visual-assets.tsv`
-  - `retrieved-visual-assets.tsv`
-  - `blocked-visual-assets.tsv`
-  - `manual-asset-urls.txt`
+- `discovered-visual-assets.tsv`
+- `retrieved-visual-assets.tsv`
+- `blocked-visual-assets.tsv`
+- `manual-asset-urls.txt`
+- `steamvr-depots-key-lines.txt`
+- `steamos-mirror-key-lines.txt`
 
 The main human-readable file is:
 
@@ -348,10 +351,30 @@ STEAMDB_CDP_ENDPOINT=http://127.0.0.1:PORT
 STEAMDB_BROWSER_CHANNEL=chrome
 ```
 
+## SteamVR And SteamOS Datamining
+
+The wrapper also checks two lower-level sources:
+
+- `scripts/check_steamvr_depots.sh` saves SteamVR app `250820` metadata and scans local SteamVR install/depot snapshots when available.
+- `scripts/check_steamos_mirror.sh` saves public SteamOS package mirror metadata and extracts package names from selected `holo` and `jupiter` repos by default.
+
+Useful knobs:
+
+```sh
+STEAMVR_SCAN_DIRS="/path/to/SteamVR /path/to/depot_snapshot"
+STEAMOS_MIRROR_REPOS="holo-3.8 holo-main jupiter-3.8 jupiter-main"
+```
+
+Set `STEAMOS_MIRROR_REPOS` to include `core`, `extra`, or `multilib` repos when you want a broader but noisier package pass.
+
+SteamVR content is distributed through SteamPipe depots rather than the SteamOS package mirror. Use the generated `steamvr-depot-download-candidates.txt` as a reminder of the high-yield depot IDs, then fill in manifest IDs from SteamDB before downloading old snapshots with Steam's depot tools.
+
 ## Current Known Limits
 
 - `Komodo` can block both `curl` and fresh browser automation.
 - `SteamDB` can return a Cloudflare browser challenge to curl and fresh automated browser contexts.
+- `SteamVR` depot contents require a Steam install, Steam console, SteamCMD, or another depot downloader; the helper does not download large depots by default.
+- The SteamOS mirror is public, but package names are not proof of product launch state without corroborating evidence.
 - We can currently discover and report blocked media URLs even when we cannot download them automatically.
 - Exported storage state may still be insufficient for Cloudflare-protected Komodo assets.
 - Live trusted browser attach is currently the strongest repeatable fallback for protected Komodo media.

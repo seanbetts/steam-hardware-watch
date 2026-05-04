@@ -58,6 +58,72 @@ Useful search terms:
 - `pair`
 - `firmware`
 
+## SteamVR Depots
+
+SteamVR is Steam app `250820`.
+
+- SteamDB depots page: `https://steamdb.info/app/250820/depots/`
+- official news API: `https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=250820&count=40&maxlength=12000&format=json`
+
+High-yield depots:
+
+- `250821`: Windows OpenVR Win32
+- `250823`: Linux OpenVR Linux
+- `250824`: Windows/Linux OpenVR Content
+- `250827`: Windows/Linux OpenVR Content 2
+- `250830`: SteamVR Environments Content
+- `250831`: SteamVR Environments Windows
+- `250832`: SteamVR Environments Linux
+
+Useful search terms:
+
+- `Steam Frame`
+- `Frame`
+- `Deckard`
+- `Roy`
+- `Triton`
+- `Ibex`
+- `Puck`
+- `Steam Link VR`
+- `dongle`
+- `activeFrame`
+- `summonOverlayKey`
+- `XR`
+- `VR`
+
+## SteamOS Package Mirror
+
+- root mirror: `https://steamdeck-packages.steamos.cloud/archlinux-mirror/`
+- source mirror: `https://steamdeck-packages.steamos.cloud/archlinux-mirror/sources/`
+
+High-yield repos:
+
+- `holo-main`
+- `holo-3.8`
+- `jupiter-main`
+- `jupiter-3.8`
+- `core-main`
+- `extra-main`
+- `multilib-main`
+
+Useful search terms:
+
+- `Fremont`
+- `Deckard`
+- `Steam Frame`
+- `Roy`
+- `Ibex`
+- `Triton`
+- `Lilac`
+- `XR`
+- `VR`
+- `dongle`
+- `firmware`
+- `aarch64`
+- `arm64`
+- `qcom`
+- `snapdragon`
+
 ## Valve Endpoints
 
 Check for newly exposed assets or support flows:
@@ -75,6 +141,9 @@ Check for newly exposed assets or support flows:
 Use as confirmation when primary signals move:
 
 - customs and import records
+- NBD Valve Corporation public company page: `https://en.nbd.ltd/trader/info/NBDD3Y527621220`
+- NBD buyer search for Valve Corporation: `https://en.nbd.ltd/customs-data?t=2&v=Valve%20Corporation`
+- ImportGenius Ingram Micro C/O Valve Corporation page: `https://www.importgenius.cn/importers/ingram-micro-c-o-valve-corporation`
 - FCC
 - Bluetooth SIG
 - Wi-Fi Alliance

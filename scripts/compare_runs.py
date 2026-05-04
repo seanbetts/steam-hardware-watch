@@ -123,6 +123,8 @@ def build_summary(prev_dir: Path, curr_dir: Path):
     deltas.extend(compare_report_sets(prev_dir, curr_dir, "Komodo machine media", "komodo-machine-media.tsv"))
     deltas.extend(compare_report_sets(prev_dir, curr_dir, "Komodo frame media", "komodo-frame-media.tsv"))
     deltas.extend(compare_text_lines(prev_dir, curr_dir, "SteamDB", "steamdb-key-lines.txt"))
+    deltas.extend(compare_text_lines(prev_dir, curr_dir, "SteamVR depots", "steamvr-depots-key-lines.txt"))
+    deltas.extend(compare_text_lines(prev_dir, curr_dir, "SteamOS mirror", "steamos-mirror-key-lines.txt"))
     deltas.extend(compare_text_lines(prev_dir, curr_dir, "Valve endpoint", "valve-key-lines.txt"))
 
     if deltas:

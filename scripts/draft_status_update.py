@@ -49,12 +49,16 @@ def build_draft(run_dir: Path):
     steamdb_lines = first_n_nonempty(reports / "steamdb-key-lines.txt", 8)
     valve_lines = first_n_nonempty(reports / "valve-key-lines.txt", 8)
     tracking_lines = first_n_nonempty(reports / "steamtracking-pairing-focus.txt", 8)
+    steamvr_lines = first_n_nonempty(reports / "steamvr-depots-key-lines.txt", 8)
+    steamos_lines = first_n_nonempty(reports / "steamos-mirror-key-lines.txt", 8)
     discovered_count = count_lines(reports / "discovered-visual-assets.tsv")
     retrieved_count = count_lines(reports / "retrieved-visual-assets.tsv")
     blocked_count = count_lines(reports / "blocked-visual-assets.tsv")
     manual_urls = blocked_asset_urls(reports / "blocked-visual-assets.tsv", 10)
     komodo_blocked = has_nonempty(reports / "komodo-errors.txt")
     steamdb_blocked = has_nonempty(reports / "steamdb-errors.txt")
+    steamvr_blocked = has_nonempty(reports / "steamvr-depots-errors.txt")
+    steamos_blocked = has_nonempty(reports / "steamos-mirror-errors.txt")
     valve_blocked = has_nonempty(reports / "valve-errors.txt")
 
     lines = [
@@ -104,6 +108,22 @@ def build_draft(run_dir: Path):
         lines.extend([f"- `{line}`" for line in tracking_lines])
     else:
         lines.append("- No focused SteamTracking report found.")
+
+    lines.extend(["", "#### SteamVR Depots"])
+    if steamvr_blocked:
+        lines.append("- SteamVR depot metadata was blocked or partially unavailable in this run. See `steamvr-depots-errors.txt`.")
+    if steamvr_lines:
+        lines.extend([f"- `{line}`" for line in steamvr_lines])
+    elif not steamvr_blocked:
+        lines.append("- No SteamVR depot key-line report found.")
+
+    lines.extend(["", "#### SteamOS Package Mirror"])
+    if steamos_blocked:
+        lines.append("- SteamOS package mirror metadata was blocked or partially unavailable in this run. See `steamos-mirror-errors.txt`.")
+    if steamos_lines:
+        lines.extend([f"- `{line}`" for line in steamos_lines])
+    elif not steamos_blocked:
+        lines.append("- No SteamOS mirror key-line report found.")
 
     lines.extend(["", "#### Valve Support / CDN"])
     if valve_blocked:

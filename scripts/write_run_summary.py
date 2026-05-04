@@ -15,6 +15,13 @@ FILTER_TERMS = (
     "2026",
     "pair",
     "firmware",
+    "fremont",
+    "deckard",
+    "roy",
+    "lilac",
+    "xr",
+    "vr",
+    "dongle",
 )
 REJECT_TERMS = (
     "application_config",
@@ -102,6 +109,8 @@ def build(run_dir: Path):
         "",
         f"- Komodo blocked: `{'yes' if count(reports / 'komodo-errors.txt') else 'no'}`",
         f"- SteamDB blocked: `{'yes' if count(reports / 'steamdb-errors.txt') else 'no'}`",
+        f"- SteamVR depot metadata blocked: `{'yes' if count(reports / 'steamvr-depots-errors.txt') else 'no'}`",
+        f"- SteamOS mirror metadata blocked: `{'yes' if count(reports / 'steamos-mirror-errors.txt') else 'no'}`",
         f"- Valve blocked: `{'yes' if count(reports / 'valve-errors.txt') else 'no'}`",
         f"- Discovered visual assets: `{discovered}`",
         f"- Retrieved visual assets: `{retrieved}`",
@@ -125,6 +134,8 @@ def build(run_dir: Path):
     notable = []
     notable.extend([f"- SteamDB: `{line}`" for line in filtered_first(reports / "steamdb-key-lines.txt", 5)])
     notable.extend([f"- SteamTracking: `{line}`" for line in filtered_first(reports / "steamtracking-pairing-focus.txt", 5)])
+    notable.extend([f"- SteamVR depots: `{line}`" for line in filtered_first(reports / "steamvr-depots-key-lines.txt", 5)])
+    notable.extend([f"- SteamOS mirror: `{line}`" for line in filtered_first(reports / "steamos-mirror-key-lines.txt", 5)])
     notable.extend([f"- Valve: `{line}`" for line in filtered_first(reports / "valve-key-lines.txt", 5)])
     notable.extend([f"- Asset blocked: `{line}`" for line in filtered_first(reports / "blocked-visual-assets.tsv", 5)])
 

@@ -37,6 +37,14 @@ if [ ! -f "$RUN_NOTE" ]; then
 
 -
 
+### SteamVR Depots
+
+-
+
+### SteamOS Package Mirror
+
+-
+
 ### Valve Support / CDN
 
 -
