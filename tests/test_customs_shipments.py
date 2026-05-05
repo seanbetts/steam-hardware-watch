@@ -300,5 +300,54 @@ class CheckCustomsShipmentsShellTests(unittest.TestCase):
             self.assertIn("failed to fetch", errors)
 
 
+class CustomsSummaryIntegrationTests(unittest.TestCase):
+    def test_run_summary_and_status_draft_include_customs_lines(self):
+        with TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "2026-05-05"
+            reports = run_dir / "reports"
+            reports.mkdir(parents=True)
+            (reports / "customs-shipments-key-lines.txt").write_text(
+                "2026-05-01\tCEVA C/O VALVE CORPORATION\tTECH-FRONT (CHONGQING) COMPUTER CO\tGAME CONSOLE\t42 PKG\t12596 Kgs\tSNHBSHALAX264015\n",
+                encoding="utf-8",
+            )
+            (reports / "customs-shipments-errors.txt").write_text("", encoding="utf-8")
+
+            summary = subprocess.run(
+                [
+                    "python3",
+                    str(ROOT / "scripts" / "write_run_summary.py"),
+                    "--run-dir",
+                    str(run_dir),
+                ],
+                cwd=ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            draft = subprocess.run(
+                [
+                    "python3",
+                    str(ROOT / "scripts" / "draft_status_update.py"),
+                    "--run-dir",
+                    str(run_dir),
+                ],
+                cwd=ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+            self.assertEqual(0, summary.returncode)
+            self.assertEqual(0, draft.returncode)
+            run_summary = (reports / "run-summary.md").read_text(encoding="utf-8")
+            status_draft = (reports / "status-draft.md").read_text(encoding="utf-8")
+            self.assertIn("Customs shipments", run_summary)
+            self.assertIn("SNHBSHALAX264015", run_summary)
+            self.assertIn("Customs / Shipments", status_draft)
+            self.assertIn("GAME CONSOLE", status_draft)
+
+
 if __name__ == "__main__":
     unittest.main()

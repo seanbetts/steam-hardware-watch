@@ -112,6 +112,7 @@ def build(run_dir: Path):
         f"- SteamVR depot metadata blocked: `{'yes' if count(reports / 'steamvr-depots-errors.txt') else 'no'}`",
         f"- SteamOS mirror metadata blocked: `{'yes' if count(reports / 'steamos-mirror-errors.txt') else 'no'}`",
         f"- Valve blocked: `{'yes' if count(reports / 'valve-errors.txt') else 'no'}`",
+        f"- Customs shipments blocked: `{'yes' if count(reports / 'customs-shipments-errors.txt') else 'no'}`",
         f"- Discovered visual assets: `{discovered}`",
         f"- Retrieved visual assets: `{retrieved}`",
         f"- Blocked visual assets: `{blocked}`",
@@ -124,6 +125,7 @@ def build(run_dir: Path):
         f"- Retrieved assets: `{reports / 'retrieved-visual-assets.tsv'}`",
         f"- Blocked assets: `{reports / 'blocked-visual-assets.tsv'}`",
         f"- Manual retry URLs: `{reports / 'manual-asset-urls.txt'}`",
+        f"- Customs shipments: `{reports / 'customs-shipments.md'}`",
     ]
 
     if compare_file:
@@ -137,6 +139,7 @@ def build(run_dir: Path):
     notable.extend([f"- SteamVR depots: `{line}`" for line in filtered_first(reports / "steamvr-depots-key-lines.txt", 5)])
     notable.extend([f"- SteamOS mirror: `{line}`" for line in filtered_first(reports / "steamos-mirror-key-lines.txt", 5)])
     notable.extend([f"- Valve: `{line}`" for line in filtered_first(reports / "valve-key-lines.txt", 5)])
+    notable.extend([f"- Customs shipments: `{line}`" for line in filtered_first(reports / "customs-shipments-key-lines.txt", 8)])
     notable.extend([f"- Asset blocked: `{line}`" for line in filtered_first(reports / "blocked-visual-assets.tsv", 5)])
 
     if notable:
