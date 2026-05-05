@@ -141,9 +141,14 @@ Check for newly exposed assets or support flows:
 Use as confirmation when primary signals move:
 
 - customs and import records
+- ImportInfo search for CEVA/Valve: `https://www.importinfo.com/search?s=CEVA%20C%2FO%20VALVE%20CORPORATION`
+- ImportInfo search for Ingram/Valve: `https://www.importinfo.com/search?s=INGRAM%20MICRO%20C%2FO%20VALVE%20CORPORATION`
+- ImportInfo Tech-Front supplier page: `https://www.importinfo.com/tech-front-chongqing-computer-co`
+- ImportInfo Valve Corporation page: `https://www.importinfo.com/valve-corporation`
 - NBD Valve Corporation public company page: `https://en.nbd.ltd/trader/info/NBDD3Y527621220`
 - NBD buyer search for Valve Corporation: `https://en.nbd.ltd/customs-data?t=2&v=Valve%20Corporation`
 - ImportGenius Ingram Micro C/O Valve Corporation page: `https://www.importgenius.cn/importers/ingram-micro-c-o-valve-corporation`
+- HMRC UK Trade Info: rejected for this workflow because it is lagged monthly aggregate/trader data rather than shipment-level data.
 - FCC
 - Bluetooth SIG
 - Wi-Fi Alliance
