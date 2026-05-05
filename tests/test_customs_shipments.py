@@ -1,4 +1,6 @@
 import csv
+import os
+import stat
 import subprocess
 import textwrap
 import unittest
@@ -73,6 +75,11 @@ def read_rows(reports):
             delimiter="\t",
         )
     )
+
+
+def write_executable(path, content):
+    path.write_text(textwrap.dedent(content).lstrip(), encoding="utf-8")
+    path.chmod(path.stat().st_mode | stat.S_IXUSR)
 
 
 class CustomsShipmentParserTests(unittest.TestCase):
@@ -218,6 +225,79 @@ class CustomsShipmentParserTests(unittest.TestCase):
             rows = read_rows(reports)
             self.assertEqual(["SNHBSHALAX264014"], [row["house_bol"] for row in rows])
             self.assertEqual("https://example.test/ceva", rows[0]["source_url"])
+
+
+class CheckCustomsShipmentsShellTests(unittest.TestCase):
+    def test_fetches_pages_and_runs_parser(self):
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            run_dir = tmp_path / "run"
+            fake_bin = tmp_path / "bin"
+            fake_bin.mkdir()
+            write_executable(
+                fake_bin / "curl",
+                f"""
+                #!/bin/sh
+                cat <<'HTML'
+                {IMPORTINFO_HTML}
+                HTML
+                """,
+            )
+            env = os.environ.copy()
+            env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
+
+            result = subprocess.run(
+                [str(ROOT / "scripts" / "check_customs_shipments.sh"), str(run_dir)],
+                cwd=ROOT,
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+            self.assertEqual("", result.stderr)
+            self.assertEqual(0, result.returncode)
+            self.assertTrue(
+                (run_dir / "api" / "customs" / "importinfo-ceva-valve.html").exists()
+            )
+            key_lines = (
+                run_dir / "reports" / "customs-shipments-key-lines.txt"
+            ).read_text(encoding="utf-8")
+            self.assertIn("SNHBSHALAX264014", key_lines)
+
+    def test_records_blocked_fetches_without_failing_run(self):
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            run_dir = tmp_path / "run"
+            fake_bin = tmp_path / "bin"
+            fake_bin.mkdir()
+            write_executable(
+                fake_bin / "curl",
+                """
+                #!/bin/sh
+                exit 22
+                """,
+            )
+            env = os.environ.copy()
+            env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
+
+            result = subprocess.run(
+                [str(ROOT / "scripts" / "check_customs_shipments.sh"), str(run_dir)],
+                cwd=ROOT,
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+            self.assertEqual("", result.stderr)
+            self.assertEqual(0, result.returncode)
+            errors = (run_dir / "reports" / "customs-shipments-errors.txt").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("failed to fetch", errors)
 
 
 if __name__ == "__main__":
