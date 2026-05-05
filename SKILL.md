@@ -52,6 +52,7 @@ Use the source helpers when available:
 - [scripts/check_steamvr_depots.sh](scripts/check_steamvr_depots.sh)
 - [scripts/check_steamos_mirror.sh](scripts/check_steamos_mirror.sh)
 - [scripts/check_valve_endpoints.sh](scripts/check_valve_endpoints.sh)
+- [scripts/check_customs_shipments.sh](scripts/check_customs_shipments.sh)
 - [scripts/compare_runs.py](scripts/compare_runs.py)
 - [scripts/save_visual_assets.py](scripts/save_visual_assets.py)
 - [scripts/draft_status_update.py](scripts/draft_status_update.py)
@@ -207,14 +208,20 @@ Do not treat generic Steam Deck site media as relevant unless it is directly tie
 
 ### 7. Customs / Regulatory
 
-Run when:
+Use [scripts/check_customs_shipments.sh](scripts/check_customs_shipments.sh) for shipment-level customs checks.
 
-- Komodo gets fresh media or sections
-- SteamDB gets fresh app or package movement
-- SteamTracking gets materially new rollout strings
-- or on a slower periodic cadence
+Run customs checks every normal watch run because ImportInfo is quick and high-signal. Use customs data for confirmation, not as the primary source of truth.
 
-Use for confirmation, not as the primary source of truth.
+Primary automated customs source:
+
+- ImportInfo search pages for `CEVA C/O VALVE CORPORATION`, `INGRAM MICRO C/O VALVE CORPORATION`, `TECH-FRONT GAME CONSOLE VALVE`, and `VALVE CORPORATION GAME CONSOLE`
+
+Corroborating/manual sources:
+
+- NBD Valve and Ingram/Valve trader pages
+- ImportGenius public previews for CEVA/Valve, Ingram/Valve, and Tech-Front
+
+Do not use HMRC UK Trade Info for launch monitoring. It is lagged monthly trader/commodity presence, not shipment-level evidence.
 
 ## What Counts As Meaningful
 

@@ -49,6 +49,7 @@ printf '%s\n' "Run note: $RUN_NOTE"
 "$SCRIPT_DIR/check_steamvr_depots.sh" "$RUN_DIR"
 "$SCRIPT_DIR/check_steamos_mirror.sh" "$RUN_DIR"
 "$SCRIPT_DIR/check_valve_endpoints.sh" "$RUN_DIR"
+"$SCRIPT_DIR/check_customs_shipments.sh" "$RUN_DIR"
 python3 "$SCRIPT_DIR/save_visual_assets.py" --run-dir "$RUN_DIR" --base-dir "$BASE_DIR"
 
 PREVIOUS_DIR=""
