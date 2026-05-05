@@ -157,8 +157,29 @@ def is_relevant(record):
             record["notify_party"],
         )
     ).upper()
+    record_text = " ".join(
+        (
+            record["query"],
+            record["run_date"],
+            record["master_bol"],
+            record["house_bol"],
+            record["voyage"],
+            record["bill_type"],
+            record["carrier_code"],
+            record["imo"],
+            record["vessel_name"],
+            record["arrival_date"],
+            record["us_port"],
+            record["foreign_port"],
+            record["quantity"],
+            record["weight"],
+            record["type_of_service"],
+            record["commodity"],
+        )
+    ).upper()
     commodity_text = record["commodity"].upper()
-    return any(term in party_text for term in PARTY_TERMS) and any(
+    has_valve_signal = "VALVE" in party_text or "VALVE CORPORATION" in record_text
+    return has_valve_signal and any(term in party_text for term in PARTY_TERMS) and any(
         term in commodity_text for term in PRODUCT_TERMS
     )
 

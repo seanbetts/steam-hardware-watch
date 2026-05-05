@@ -21,6 +21,16 @@ IMPORTINFO_USER_AGENT=${IMPORTINFO_USER_AGENT:-"Mozilla/5.0 (Macintosh; Intel Ma
 MANIFEST=$OUT_DIR/importinfo-inputs.tsv
 : > "$MANIFEST"
 
+looks_like_importinfo_shipment_table() {
+    path=$1
+    for header in "Master BOL" "House BOL" "Arrival Date" "Commodity"; do
+        if ! grep -qi "$header" "$path"; then
+            return 1
+        fi
+    done
+    return 0
+}
+
 fetch_importinfo() {
     slug=$1
     query=$2
@@ -37,6 +47,11 @@ fetch_importinfo() {
         --max-time 45 \
         -fsSL "$url" > "$tmp" 2>/dev/null
     then
+        if ! looks_like_importinfo_shipment_table "$tmp"; then
+            rm -f "$tmp" "$out"
+            printf 'unexpected or blocked content from %s\n' "$url" >> "$ERROR_FILE"
+            return 0
+        fi
         mv "$tmp" "$out"
         printf '%s\t%s\t%s\n' "$query" "$url" "$out" >> "$MANIFEST"
         return 0

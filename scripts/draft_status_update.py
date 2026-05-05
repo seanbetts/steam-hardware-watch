@@ -51,7 +51,14 @@ def build_draft(run_dir: Path):
     tracking_lines = first_n_nonempty(reports / "steamtracking-pairing-focus.txt", 8)
     steamvr_lines = first_n_nonempty(reports / "steamvr-depots-key-lines.txt", 8)
     steamos_lines = first_n_nonempty(reports / "steamos-mirror-key-lines.txt", 8)
-    customs_lines = first_n_nonempty(reports / "customs-shipments-key-lines.txt", 8)
+    customs_key_lines_path = reports / "customs-shipments-key-lines.txt"
+    customs_errors_path = reports / "customs-shipments-errors.txt"
+    customs_report_path = reports / "customs-shipments.md"
+    customs_lines = first_n_nonempty(customs_key_lines_path, 8)
+    customs_outputs_available = any(
+        path.exists()
+        for path in (customs_key_lines_path, customs_errors_path, customs_report_path)
+    )
     discovered_count = count_lines(reports / "discovered-visual-assets.tsv")
     retrieved_count = count_lines(reports / "retrieved-visual-assets.tsv")
     blocked_count = count_lines(reports / "blocked-visual-assets.tsv")
@@ -61,7 +68,7 @@ def build_draft(run_dir: Path):
     steamvr_blocked = has_nonempty(reports / "steamvr-depots-errors.txt")
     steamos_blocked = has_nonempty(reports / "steamos-mirror-errors.txt")
     valve_blocked = has_nonempty(reports / "valve-errors.txt")
-    customs_blocked = has_nonempty(reports / "customs-shipments-errors.txt")
+    customs_blocked = has_nonempty(customs_errors_path)
 
     lines = [
         f"# Status Draft: {run_date}",
@@ -136,11 +143,13 @@ def build_draft(run_dir: Path):
         lines.append("- No Valve key-line report found.")
 
     lines.extend(["", "#### Customs / Shipments"])
-    if customs_blocked:
+    if not customs_outputs_available:
+        lines.append("- Customs shipment outputs were not generated or are unavailable for this run.")
+    elif customs_blocked:
         lines.append("- Customs shipment fetches failed or were partially blocked in this run. See `customs-shipments-errors.txt`.")
     if customs_lines:
         lines.extend([f"- `{line}`" for line in customs_lines])
-    elif not customs_blocked:
+    elif customs_outputs_available and not customs_blocked:
         lines.append("- No relevant customs shipment rows found.")
 
     lines.extend(

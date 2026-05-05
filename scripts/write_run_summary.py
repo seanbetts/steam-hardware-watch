@@ -90,6 +90,17 @@ def count_block_reason(path: Path, reason: str):
     return total
 
 
+def customs_status(reports: Path):
+    key_lines = reports / "customs-shipments-key-lines.txt"
+    errors = reports / "customs-shipments-errors.txt"
+    report = reports / "customs-shipments.md"
+    if not any(path.exists() for path in (key_lines, errors, report)):
+        return "unavailable"
+    if count(errors):
+        return "blocked"
+    return "available"
+
+
 def build(run_dir: Path):
     reports = run_dir / "reports"
     compare = sorted(reports.glob("compare-vs-*.md"))
@@ -112,7 +123,7 @@ def build(run_dir: Path):
         f"- SteamVR depot metadata blocked: `{'yes' if count(reports / 'steamvr-depots-errors.txt') else 'no'}`",
         f"- SteamOS mirror metadata blocked: `{'yes' if count(reports / 'steamos-mirror-errors.txt') else 'no'}`",
         f"- Valve blocked: `{'yes' if count(reports / 'valve-errors.txt') else 'no'}`",
-        f"- Customs shipments blocked: `{'yes' if count(reports / 'customs-shipments-errors.txt') else 'no'}`",
+        f"- Customs shipments status: `{customs_status(reports)}`",
         f"- Discovered visual assets: `{discovered}`",
         f"- Retrieved visual assets: `{retrieved}`",
         f"- Blocked visual assets: `{blocked}`",
