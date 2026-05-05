@@ -49,6 +49,32 @@ IMPORTINFO_HTML = textwrap.dedent(
 )
 
 
+def run_parser(args, reports):
+    return subprocess.run(
+        [
+            "python3",
+            str(ROOT / "scripts" / "parse_importinfo_shipments.py"),
+            *args,
+            "--report-dir",
+            str(reports),
+        ],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+
+def read_rows(reports):
+    return list(
+        csv.DictReader(
+            (reports / "customs-shipments.tsv").read_text(encoding="utf-8").splitlines(),
+            delimiter="\t",
+        )
+    )
+
+
 class CustomsShipmentParserTests(unittest.TestCase):
     def test_extracts_relevant_importinfo_rows(self):
         with TemporaryDirectory() as tmp:
@@ -57,33 +83,12 @@ class CustomsShipmentParserTests(unittest.TestCase):
             html.write_text(IMPORTINFO_HTML, encoding="utf-8")
             reports = tmp_path / "reports"
 
-            result = subprocess.run(
-                [
-                    "python3",
-                    str(ROOT / "scripts" / "parse_importinfo_shipments.py"),
-                    "--input",
-                    f"ceva-valve={html}",
-                    "--report-dir",
-                    str(reports),
-                ],
-                cwd=ROOT,
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                check=False,
-            )
+            result = run_parser(["--input", f"ceva-valve={html}"], reports)
 
             self.assertEqual("", result.stderr)
             self.assertEqual(0, result.returncode)
 
-            rows = list(
-                csv.DictReader(
-                    (reports / "customs-shipments.tsv")
-                    .read_text(encoding="utf-8")
-                    .splitlines(),
-                    delimiter="\t",
-                )
-            )
+            rows = read_rows(reports)
             self.assertEqual(1, len(rows))
             self.assertEqual("SNHBSHALAX264014", rows[0]["house_bol"])
             self.assertEqual("GAME CONSOLE", rows[0]["commodity"])
@@ -126,35 +131,93 @@ class CustomsShipmentParserTests(unittest.TestCase):
             )
             reports = tmp_path / "reports"
 
-            result = subprocess.run(
-                [
-                    "python3",
-                    str(ROOT / "scripts" / "parse_importinfo_shipments.py"),
-                    "--input",
-                    f"ceva-valve={html}",
-                    "--report-dir",
-                    str(reports),
-                ],
-                cwd=ROOT,
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                check=False,
-            )
+            result = run_parser(["--input", f"ceva-valve={html}"], reports)
 
             self.assertEqual(0, result.returncode)
-            rows = list(
-                csv.DictReader(
-                    (reports / "customs-shipments.tsv")
-                    .read_text(encoding="utf-8")
-                    .splitlines(),
-                    delimiter="\t",
-                )
-            )
+            rows = read_rows(reports)
             self.assertEqual(
                 ["SNHBSHALAX264014", "SNHBSHALAX264015"],
                 [row["house_bol"] for row in rows],
             )
+
+    def test_ignores_later_unrelated_table_headers(self):
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            html = tmp_path / "extra-table.html"
+            html.write_text(
+                IMPORTINFO_HTML.replace(
+                    "</body>",
+                    textwrap.dedent(
+                        """
+                        <table>
+                          <tr><th>Name</th><th>Description</th></tr>
+                          <tr><td>PROMETHEAN INC.</td><td>CHROMEBOX HTS:</td></tr>
+                        </table>
+                        </body>
+                        """
+                    ),
+                ),
+                encoding="utf-8",
+            )
+            reports = tmp_path / "reports"
+
+            result = run_parser(["--input", f"ceva-valve={html}"], reports)
+
+            self.assertEqual("", result.stderr)
+            self.assertEqual(0, result.returncode)
+            rows = read_rows(reports)
+            self.assertEqual(["SNHBSHALAX264014"], [row["house_bol"] for row in rows])
+
+    def test_matches_relevance_terms_split_by_inline_markup(self):
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            html = tmp_path / "split-cells.html"
+            html.write_text(
+                IMPORTINFO_HTML.replace(
+                    "CEVA C/O VALVE CORPORATION</td><td>GAME CONSOLE",
+                    "CEVA C/O <span>VALVE</span> CORPORATION</td><td>GAME<br>CONSOLE",
+                ),
+                encoding="utf-8",
+            )
+            reports = tmp_path / "reports"
+
+            result = run_parser(["--input", f"ceva-valve={html}"], reports)
+
+            self.assertEqual("", result.stderr)
+            self.assertEqual(0, result.returncode)
+            rows = read_rows(reports)
+            self.assertEqual(1, len(rows))
+            self.assertEqual("CEVA C/O VALVE CORPORATION", rows[0]["consignee"])
+            self.assertEqual("GAME CONSOLE", rows[0]["commodity"])
+
+    def test_manifest_inputs_dedupe_duplicate_bols(self):
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            first = tmp_path / "first.html"
+            second = tmp_path / "second.html"
+            manifest = tmp_path / "manifest.tsv"
+            first.write_text(IMPORTINFO_HTML, encoding="utf-8")
+            second.write_text(IMPORTINFO_HTML, encoding="utf-8")
+            manifest.write_text(
+                "\n".join(
+                    (
+                        "slug\tsource_url\thtml_path",
+                        f"ceva-valve\thttps://example.test/ceva\t{first}",
+                        f"ceva-valve\thttps://example.test/ceva\t{second}",
+                    )
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            reports = tmp_path / "reports"
+
+            result = run_parser(["--manifest", str(manifest)], reports)
+
+            self.assertEqual("", result.stderr)
+            self.assertEqual(0, result.returncode)
+            rows = read_rows(reports)
+            self.assertEqual(["SNHBSHALAX264014"], [row["house_bol"] for row in rows])
+            self.assertEqual("https://example.test/ceva", rows[0]["source_url"])
 
 
 if __name__ == "__main__":

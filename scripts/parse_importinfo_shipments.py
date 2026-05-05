@@ -81,8 +81,8 @@ class InputSpec:
 class TableParser(HTMLParser):
     def __init__(self):
         super().__init__()
-        self.headers = []
         self.rows = []
+        self._current_headers = []
         self._in_row = False
         self._in_cell = False
         self._cell_tag = ""
@@ -105,19 +105,21 @@ class TableParser(HTMLParser):
                 self._row_has_header = True
             else:
                 self._row_has_data = True
+        elif self._in_cell and tag == "br":
+            self._current_cell_parts.append(" ")
 
     def handle_endtag(self, tag):
         if self._in_cell and tag == self._cell_tag:
-            value = html.unescape("".join(self._current_cell_parts))
+            value = html.unescape(" ".join(self._current_cell_parts))
             self._current_cells.append(" ".join(value.split()))
             self._in_cell = False
             self._cell_tag = ""
             self._current_cell_parts = []
         elif self._in_row and tag == "tr":
             if self._row_has_header and self._current_cells:
-                self.headers = self._current_cells
+                self._current_headers = self._current_cells
             elif self._row_has_data and self._current_cells:
-                self.rows.append(self._current_cells)
+                self.rows.append((list(self._current_headers), self._current_cells))
             self._in_row = False
 
     def handle_data(self, data):
@@ -132,9 +134,9 @@ def normalize_header(value):
 def parse_rows(spec):
     parser = TableParser()
     parser.feed(spec.path.read_text(encoding="utf-8", errors="ignore"))
-    fields = [normalize_header(header) for header in parser.headers]
     rows = []
-    for parsed_row in parser.rows:
+    for headers, parsed_row in parser.rows:
+        fields = [normalize_header(header) for header in headers]
         record = {field: "" for field in OUTPUT_FIELDS}
         record["source"] = "importinfo"
         record["query"] = spec.query
