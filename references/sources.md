@@ -41,12 +41,35 @@ Reservation/package IDs seen in SteamTracking reservation-system code and SteamD
 - `Steam Machine`: `1629446`, `1629447`, `1629458`, `1629460`
 - `Steam Frame`: `1629484`, `1629486`
 
-For each run, check both SteamDB package pages and Valve Store APIs:
+Primary update check: for each package ID, check the SteamDB package page first and record:
+
+- `Last Record Update`
+- `Last Changenumber`
+- possible app association or inferred app association
+- whether SteamDB still has no package information beyond existence
+
+SteamDB package pages:
+
+- `Steam Controller package`: `https://steamdb.info/sub/1558609/`
+- `Steam Machine package`: `https://steamdb.info/sub/1629446/`
+- `Steam Machine package`: `https://steamdb.info/sub/1629447/`
+- `Steam Machine package`: `https://steamdb.info/sub/1629458/`
+- `Steam Machine package`: `https://steamdb.info/sub/1629460/`
+- `Steam Frame package`: `https://steamdb.info/sub/1629484/`
+- `Steam Frame package`: `https://steamdb.info/sub/1629486/`
+
+Corroborating Valve Store APIs:
 
 - `https://store.steampowered.com/api/appdetails?appids=4165910,4165890,4165870&cc=us&l=english`
 - `https://store.steampowered.com/api/packagedetails?packageids=<packageid>&cc=us&l=english`
 
 Known baseline: the Machine and Frame package IDs may exist on SteamDB while `packagedetails` still returns `success:false`. Treat that as private-package existence, not public launch readiness.
+
+SteamTracking origin baseline:
+
+- package IDs first appear in SteamTracking bundle snapshots at commit `334bd31a28a0` (`2026-04-28T23:46:34Z`)
+- parent commit `4a2195407fde` does not contain the IDs
+- later commit `cb7ae45d7bb1` (`2026-05-07T20:10:35Z`) changes reservation behavior but is not first package-ID exposure
 
 ## SteamTracking / GameTracking
 

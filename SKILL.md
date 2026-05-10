@@ -129,6 +129,13 @@ Preferred human-in-the-loop fallback:
 
 Check the controller app, packages, depots, and history. Prefer primary records.
 
+Primary reservation-package check:
+
+- for Machine and Frame launch readiness, start with the SteamDB package pages for the known reservation package IDs
+- record `Last Record Update`, `Last Changenumber`, inferred app association, and whether the page still says SteamDB has no information beyond package existence
+- compare those fields against the previous run before interpreting any noisier store-page timestamp
+- treat SteamDB package-page movement as the earliest update signal; use Valve `packagedetails` and app `appdetails` to determine whether that movement has become public purchase or reservation readiness
+
 Watch for:
 
 - new apps or packages
@@ -143,11 +150,11 @@ Known IDs and starting points are in [references/sources.md](references/sources.
 
 Reservation package monitoring:
 
-- check Machine app `4165910`, Frame app `4165890`, and Controller app `4165870` through `appdetails`
-- check reservation-package IDs from SteamTracking/SteamDB:
+- check reservation-package IDs from SteamTracking/SteamDB on SteamDB first:
   - Machine: `1629446`, `1629447`, `1629458`, `1629460`
   - Frame: `1629484`, `1629486`
   - Controller baseline: `1558609`
+- then check Machine app `4165910`, Frame app `4165890`, and Controller app `4165870` through Valve `appdetails`
 - treat private packages returning `packagedetails success:false` as meaningful existence evidence but not launch-ready by itself
 - treat any transition to public `packagedetails`, new `appdetails.packages`, `package_groups`, price, reservation text, purchase eligibility, or exact release timing as high-signal
 
@@ -172,6 +179,12 @@ Look for:
 - device type names or codenames
 - reservation flow allowlists and package IDs
 - support or OOBE changes
+
+Known reservation-package code baseline:
+
+- Machine package IDs `1629446`, `1629447`, `1629458`, `1629460` and Frame package IDs `1629484`, `1629486` first appear in SteamTracking bundle snapshots at commit `334bd31a28a0` on `2026-04-28T23:46:34Z`
+- the parent `4a2195407fde` does not contain those IDs
+- later reservation-code commits such as `cb7ae45d7bb1` are not the first appearance; inspect diffs for behavioral changes rather than treating repeated IDs as new
 
 Only summarize findings that materially affect launch-readiness or architecture inference.
 
@@ -243,6 +256,7 @@ Strong examples:
 
 - new controller-only Komodo section rollout
 - new SteamDB unboxing or store media
+- SteamDB package-page `Last Record Update` / changenumber movement for Machine or Frame reservation packages
 - published price or release date
 - private Machine/Frame reservation packages becoming public or gaining price/package-group/reservation metadata
 - controller-specific support or legal docs
