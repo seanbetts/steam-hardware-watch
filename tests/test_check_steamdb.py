@@ -129,3 +129,76 @@ class CheckSteamDBTests(unittest.TestCase):
         self.assertIn("Coming soon", html)
         errors = (run_dir / "reports" / "steamdb-errors.txt").read_text(encoding="utf-8")
         self.assertEqual("", errors)
+
+    def test_records_reservation_package_update_baseline(self):
+        tmp = TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        tmp_path = Path(tmp.name)
+        run_dir = tmp_path / "run"
+        fake_bin = tmp_path / "bin"
+        fake_bin.mkdir()
+
+        write_executable(
+            fake_bin / "curl",
+            """
+            #!/bin/sh
+            for arg in "$@"; do
+              url="$arg"
+            done
+
+            case "$url" in
+              *sub/1629446*)
+                printf '%s\\n' '<html><body><h1>Steam Sub 1629446</h1><table><tr><td>Last Record Update</td><td>27 April 2026 &#8211; 18:22:46 UTC</td></tr><tr><td>Last Changenumber</td><td>35499151</td></tr></table><p>We have no information about this package besides the fact that it exists.</p><h2>Possible apps in this package</h2><table><tr><td>4165910</td><td>Game</td><td>Steam Machine</td><td>35499151</td></tr></table></body></html>'
+                ;;
+              *sub/1629484*)
+                printf '%s\\n' '<html><body><h1>Steam Sub 1629484</h1><table><tr><td>Last Record Update</td><td>27 April 2026 &#8211; 18:21:50 UTC</td></tr><tr><td>Last Changenumber</td><td>35499157</td></tr></table><p>We have no information about this package besides the fact that it exists.</p><h2>Possible apps in this package</h2><table><tr><td>4165890</td><td>Game</td><td>Steam Frame</td><td>35499151</td></tr></table></body></html>'
+                ;;
+              *sub/*)
+                package="${url%/}"
+                package="${package##*/}"
+                printf '<html><body><h1>Steam Sub %s</h1><table><tr><td>Last Record Update</td><td>27 April 2026 &#8211; 18:20:00 UTC</td></tr><tr><td>Last Changenumber</td><td>35499000</td></tr></table><p>We have no information about this package besides the fact that it exists.</p></body></html>\\n' "$package"
+                ;;
+              *)
+                printf '%s\\n' '<html><title>Steam Controller AppID: 4165870</title><body>Coming soon prerelease</body></html>'
+                ;;
+            esac
+            """,
+        )
+
+        env = os.environ.copy()
+        env.update({"PATH": f"{fake_bin}:{env['PATH']}"})
+
+        result = subprocess.run(
+            [str(ROOT / "scripts" / "check_steamdb.sh"), str(run_dir)],
+            cwd=ROOT,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual("", result.stderr)
+        self.assertEqual(0, result.returncode)
+
+        steamdb_dir = run_dir / "api" / "steamdb"
+        self.assertTrue((steamdb_dir / "package-1629446.html").exists())
+        self.assertTrue((steamdb_dir / "package-1629484.html").exists())
+
+        report = (run_dir / "reports" / "steamdb-reservation-packages.tsv").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            "Steam Machine\t1629446\t27 April 2026 - 18:22:46 UTC\t35499151\t4165910:Steam Machine\tprivate_exists_only",
+            report,
+        )
+        self.assertIn(
+            "Steam Frame\t1629484\t27 April 2026 - 18:21:50 UTC\t35499157\t4165890:Steam Frame\tprivate_exists_only",
+            report,
+        )
+
+        key_lines = (run_dir / "reports" / "steamdb-key-lines.txt").read_text(
+            encoding="utf-8"
+        )
+        self.assertTrue(key_lines.startswith("Reservation package SteamDB snapshot:"))
+        self.assertIn("Steam Machine\t1629446", key_lines)

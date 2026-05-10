@@ -16,6 +16,7 @@ mkdir -p "$OUT_DIR" "$REPORT_DIR"
 ERROR_FILE="$REPORT_DIR/steamdb-errors.txt"
 : > "$ERROR_FILE"
 : > "$REPORT_DIR/steamdb-key-lines.txt"
+: > "$REPORT_DIR/steamdb-reservation-packages.tsv"
 
 load_local_env() {
   env_file="${STEAMDB_ENV_FILE:-$REPO_DIR/.local/steamdb-env.sh}"
@@ -93,10 +94,119 @@ fetch_html "controller-history" "https://steamdb.info/app/4165870/history/" || t
 fetch_html "controller-unboxing-app" "https://steamdb.info/app/4653940/" || true
 fetch_html "controller-unboxing-package" "https://steamdb.info/sub/1620489/" || true
 
-rg -n "Coming soon|released|ownersonly|free on demand|unboxing|package|depot|video" \
+for packageid in 1558609 1629446 1629447 1629458 1629460 1629484 1629486; do
+  fetch_html "package-$packageid" "https://steamdb.info/sub/$packageid/" || true
+done
+
+python3 - "$OUT_DIR" "$REPORT_DIR/steamdb-reservation-packages.tsv" <<'PY'
+import html
+import sys
+from html.parser import HTMLParser
+from pathlib import Path
+
+
+out_dir = Path(sys.argv[1])
+report_path = Path(sys.argv[2])
+
+packages = {
+    "1558609": ("Steam Controller", "4165870", "Steam Controller"),
+    "1629446": ("Steam Machine", "4165910", "Steam Machine"),
+    "1629447": ("Steam Machine", "4165910", "Steam Machine"),
+    "1629458": ("Steam Machine", "4165910", "Steam Machine"),
+    "1629460": ("Steam Machine", "4165910", "Steam Machine"),
+    "1629484": ("Steam Frame", "4165890", "Steam Frame"),
+    "1629486": ("Steam Frame", "4165890", "Steam Frame"),
+}
+
+
+class TextParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.parts = []
+
+    def handle_data(self, data):
+        text = html.unescape(data).strip()
+        if text:
+            self.parts.append(text)
+
+
+def clean(value):
+    return str(value or "").replace("\t", " ").replace("\n", " ").strip()
+
+
+def normalized_text(path):
+    parser = TextParser()
+    parser.feed(path.read_text(encoding="utf-8", errors="replace"))
+    parts = [part.replace("\u2013", "-") for part in parser.parts]
+    return parts, " ".join(parts)
+
+
+def field_after(parts, label):
+    for index, part in enumerate(parts):
+        if part == label:
+            for candidate in parts[index + 1 :]:
+                if candidate:
+                    return candidate
+    return ""
+
+
+rows = [[
+    "product",
+    "package_id",
+    "last_record_update",
+    "last_changenumber",
+    "possible_apps",
+    "status",
+]]
+
+for packageid, (product, expected_appid, expected_name) in packages.items():
+    path = out_dir / f"package-{packageid}.html"
+    if not path.exists():
+        rows.append([product, packageid, "", "", "", "missing_or_blocked"])
+        continue
+
+    parts, text = normalized_text(path)
+    last_record_update = field_after(parts, "Last Record Update")
+    last_changenumber = field_after(parts, "Last Changenumber")
+    possible_apps = ""
+    if expected_appid in text and expected_name in text:
+        possible_apps = f"{expected_appid}:{expected_name}"
+
+    lower_text = text.lower()
+    if "besides the fact that it exists" in lower_text:
+        status = "private_exists_only"
+    elif last_record_update or last_changenumber:
+        status = "details_available"
+    else:
+        status = "unknown"
+
+    rows.append([
+        product,
+        packageid,
+        last_record_update,
+        last_changenumber,
+        possible_apps,
+        status,
+    ])
+
+report_path.write_text(
+    "\n".join("\t".join(clean(value) for value in row) for row in rows) + "\n",
+    encoding="utf-8",
+)
+PY
+
+{
+  printf '%s\n' "Reservation package SteamDB snapshot:"
+  sed -n '1,40p' "$REPORT_DIR/steamdb-reservation-packages.tsv"
+  printf '\n%s\n' "HTML key matches:"
+} > "$REPORT_DIR/steamdb-key-lines.txt"
+
+rg -n -o "Coming soon|released|ownersonly|free on demand|unboxing|package|depot|video" \
   "$OUT_DIR" \
-  > "$REPORT_DIR/steamdb-key-lines.txt" || true
+  | sort -u \
+  >> "$REPORT_DIR/steamdb-key-lines.txt" || true
 
 printf '%s\n' \
   "Saved SteamDB pages to $OUT_DIR" \
-  "Saved matching lines to $REPORT_DIR/steamdb-key-lines.txt"
+  "Saved matching lines to $REPORT_DIR/steamdb-key-lines.txt" \
+  "Saved reservation package report to $REPORT_DIR/steamdb-reservation-packages.tsv"
