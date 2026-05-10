@@ -132,6 +132,7 @@ Check the controller app, packages, depots, and history. Prefer primary records.
 Watch for:
 
 - new apps or packages
+- reservation-system package movement for Machine and Frame
 - hidden or owner-only videos
 - unboxing assets
 - depot changes
@@ -139,6 +140,16 @@ Watch for:
 - CDN media or manuals linked from SteamDB
 
 Known IDs and starting points are in [references/sources.md](references/sources.md).
+
+Reservation package monitoring:
+
+- check Machine app `4165910`, Frame app `4165890`, and Controller app `4165870` through `appdetails`
+- check reservation-package IDs from SteamTracking/SteamDB:
+  - Machine: `1629446`, `1629447`, `1629458`, `1629460`
+  - Frame: `1629484`, `1629486`
+  - Controller baseline: `1558609`
+- treat private packages returning `packagedetails success:false` as meaningful existence evidence but not launch-ready by itself
+- treat any transition to public `packagedetails`, new `appdetails.packages`, `package_groups`, price, reservation text, purchase eligibility, or exact release timing as high-signal
 
 The helper script saves the raw HTML pages. Summarize only material changes.
 
@@ -159,6 +170,7 @@ Look for:
 - firmware update strings
 - pairing flow strings
 - device type names or codenames
+- reservation flow allowlists and package IDs
 - support or OOBE changes
 
 Only summarize findings that materially affect launch-readiness or architecture inference.
@@ -198,6 +210,7 @@ Run these every time if quick:
 
 - support pages
 - store app endpoints
+- Steam hardware `appdetails` and `packagedetails` for known package IDs
 - discoverable CDN assets
 - manuals, spec sheets, legal pages, safety docs
 
@@ -205,6 +218,7 @@ Save any newly exposed files.
 
 The helper script is intentionally conservative. Add extra URLs when new official pages appear.
 Do not treat generic Steam Deck site media as relevant unless it is directly tied to controller, machine, or frame evidence.
+Do not treat `rtime32_last_modified` alone as a content update; it can move with votes/comments. Prefer normalized hidden-payload hashes, `announcement_body.updatetime`, `valve_access_log.rtUpdated`, package visibility, price, package groups, reservation state, or purchase markers.
 
 ### 7. Customs / Regulatory
 
@@ -230,6 +244,7 @@ Strong examples:
 - new controller-only Komodo section rollout
 - new SteamDB unboxing or store media
 - published price or release date
+- private Machine/Frame reservation packages becoming public or gaining price/package-group/reservation metadata
 - controller-specific support or legal docs
 - shipment or filing records matching the new device
 
@@ -239,6 +254,7 @@ Weak examples:
 - generic WooCommerce script presence
 - reused placeholder assets
 - site-wide template churn without product-specific assets
+- `rtime32_last_modified` movement caused only by votes, comments, or social counters
 
 ## Run Note Format
 

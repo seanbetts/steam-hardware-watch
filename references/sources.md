@@ -29,9 +29,24 @@ Known section IDs from `2026-04-24` controller rollout:
 ## SteamDB
 
 - `Steam Controller app`: `https://steamdb.info/app/4165870/`
+- `Steam Machine app`: `https://steamdb.info/app/4165910/`
+- `Steam Frame app`: `https://steamdb.info/app/4165890/`
 - `Steam Controller history`: `https://steamdb.info/app/4165870/history/`
 - `Unboxing video app`: `https://steamdb.info/app/4653940/`
 - `Unboxing video package`: `https://steamdb.info/sub/1620489/`
+
+Reservation/package IDs seen in SteamTracking reservation-system code and SteamDB:
+
+- `Steam Controller`: `1558609` (public purchase package baseline)
+- `Steam Machine`: `1629446`, `1629447`, `1629458`, `1629460`
+- `Steam Frame`: `1629484`, `1629486`
+
+For each run, check both SteamDB package pages and Valve Store APIs:
+
+- `https://store.steampowered.com/api/appdetails?appids=4165910,4165890,4165870&cc=us&l=english`
+- `https://store.steampowered.com/api/packagedetails?packageids=<packageid>&cc=us&l=english`
+
+Known baseline: the Machine and Frame package IDs may exist on SteamDB while `packagedetails` still returns `success:false`. Treat that as private-package existence, not public launch readiness.
 
 ## SteamTracking / GameTracking
 
