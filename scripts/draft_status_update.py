@@ -46,6 +46,7 @@ def build_draft(run_dir: Path):
         compare_lines = [line for line in read_lines(compare_file) if line.startswith("- ")][:12]
 
     komodo_mods = first_n_nonempty(reports / "komodo-product-modified.tsv", 10)
+    steamkit_lines = first_n_nonempty(reports / "steamkit-pics-key-lines.txt", 10)
     steamdb_lines = first_n_nonempty(reports / "steamdb-key-lines.txt", 8)
     valve_lines = first_n_nonempty(reports / "valve-key-lines.txt", 8)
     tracking_lines = first_n_nonempty(reports / "steamtracking-pairing-focus.txt", 8)
@@ -64,6 +65,7 @@ def build_draft(run_dir: Path):
     blocked_count = count_lines(reports / "blocked-visual-assets.tsv")
     manual_urls = blocked_asset_urls(reports / "blocked-visual-assets.tsv", 10)
     komodo_blocked = has_nonempty(reports / "komodo-errors.txt")
+    steamkit_blocked = has_nonempty(reports / "steamkit-pics-errors.txt")
     steamdb_blocked = has_nonempty(reports / "steamdb-errors.txt")
     steamvr_blocked = has_nonempty(reports / "steamvr-depots-errors.txt")
     steamos_blocked = has_nonempty(reports / "steamos-mirror-errors.txt")
@@ -103,6 +105,14 @@ def build_draft(run_dir: Path):
     lines.append(f"- Discovered visual assets: `{discovered_count}`")
     lines.append(f"- Retrieved visual assets: `{retrieved_count}`")
     lines.append(f"- Blocked visual assets: `{blocked_count}`")
+
+    lines.extend(["", "#### SteamKit / PICS"])
+    if steamkit_blocked:
+        lines.append("- SteamKit/PICS was unavailable or failed in this run. See `steamkit-pics-errors.txt`.")
+    if steamkit_lines:
+        lines.extend([f"- `{line}`" for line in steamkit_lines])
+    elif not steamkit_blocked:
+        lines.append("- No SteamKit/PICS key-line report found.")
 
     lines.extend(["", "#### SteamDB"])
     if steamdb_blocked:

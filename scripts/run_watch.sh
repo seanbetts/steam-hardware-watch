@@ -44,6 +44,7 @@ printf '%s\n' "Run dir: $RUN_DIR"
 printf '%s\n' "Run note: $RUN_NOTE"
 
 "$SCRIPT_DIR/check_komodo.sh" "$RUN_DIR"
+"$SCRIPT_DIR/check_steamkit_pics.sh" "$RUN_DIR"
 "$SCRIPT_DIR/check_steamdb.sh" "$RUN_DIR"
 "$SCRIPT_DIR/check_steamtracking.sh" "$RUN_DIR" "$TRACKING_DIR"
 "$SCRIPT_DIR/check_steamvr_depots.sh" "$RUN_DIR"

@@ -47,6 +47,7 @@ Use the source helpers when available:
 
 - [scripts/run_watch.sh](scripts/run_watch.sh)
 - [scripts/check_komodo.sh](scripts/check_komodo.sh)
+- [scripts/check_steamkit_pics.sh](scripts/check_steamkit_pics.sh)
 - [scripts/check_steamdb.sh](scripts/check_steamdb.sh)
 - [scripts/check_steamtracking.sh](scripts/check_steamtracking.sh)
 - [scripts/check_steamvr_depots.sh](scripts/check_steamvr_depots.sh)
@@ -133,8 +134,10 @@ Treat SteamKit/PICS as the primary direct Steam metadata source for apps, packag
 Use a narrow SteamKit2 helper when available. It should:
 
 - use a separate low-risk Steam account, not the user's main account
+- load credentials from `.local/steamkit-env.sh` or equivalent environment variables
 - poll only watched Valve hardware app and package IDs
 - save raw app/package product-info snapshots and changenumbers
+- write `steamkit-pics-packages.tsv` and `steamkit-pics-key-lines.txt`
 - compare snapshots against the previous run
 - avoid protected depot downloads and aggressive polling
 
@@ -349,7 +352,7 @@ Use [scripts/run_watch.sh](scripts/run_watch.sh) for the normal path.
 It will:
 
 1. initialize the run folder
-2. run the Komodo, SteamDB, SteamTracking, SteamVR depot, SteamOS mirror, and Valve endpoint checks
+2. run the Komodo, SteamKit/PICS, SteamDB, SteamTracking, SteamVR depot, SteamOS mirror, and Valve endpoint checks
 3. auto-detect the previous run folder when possible
 4. write a comparison report into the current run folder
 5. save discovered visual assets into the current run folder

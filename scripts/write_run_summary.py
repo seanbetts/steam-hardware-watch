@@ -119,6 +119,7 @@ def build(run_dir: Path):
         "## At A Glance",
         "",
         f"- Komodo blocked: `{'yes' if count(reports / 'komodo-errors.txt') else 'no'}`",
+        f"- SteamKit/PICS blocked: `{'yes' if count(reports / 'steamkit-pics-errors.txt') else 'no'}`",
         f"- SteamDB blocked: `{'yes' if count(reports / 'steamdb-errors.txt') else 'no'}`",
         f"- SteamVR depot metadata blocked: `{'yes' if count(reports / 'steamvr-depots-errors.txt') else 'no'}`",
         f"- SteamOS mirror metadata blocked: `{'yes' if count(reports / 'steamos-mirror-errors.txt') else 'no'}`",
@@ -136,6 +137,7 @@ def build(run_dir: Path):
         f"- Retrieved assets: `{reports / 'retrieved-visual-assets.tsv'}`",
         f"- Blocked assets: `{reports / 'blocked-visual-assets.tsv'}`",
         f"- Manual retry URLs: `{reports / 'manual-asset-urls.txt'}`",
+        f"- SteamKit/PICS packages: `{reports / 'steamkit-pics-packages.tsv'}`",
         f"- Customs shipments: `{reports / 'customs-shipments.md'}`",
     ]
 
@@ -145,6 +147,7 @@ def build(run_dir: Path):
     lines.extend(["", "## Notable Lines", ""])
 
     notable = []
+    notable.extend([f"- SteamKit/PICS: `{line}`" for line in filtered_first(reports / "steamkit-pics-key-lines.txt", 8)])
     notable.extend([f"- SteamDB: `{line}`" for line in filtered_first(reports / "steamdb-key-lines.txt", 5)])
     notable.extend([f"- SteamTracking: `{line}`" for line in filtered_first(reports / "steamtracking-pairing-focus.txt", 5)])
     notable.extend([f"- SteamVR depots: `{line}`" for line in filtered_first(reports / "steamvr-depots-key-lines.txt", 5)])

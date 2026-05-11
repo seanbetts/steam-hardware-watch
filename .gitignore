@@ -3,6 +3,8 @@ __pycache__/
 *.pyc
 .venv/
 node_modules/
+bin/
+obj/
 .worktrees/
 
 # Local agent/browser state

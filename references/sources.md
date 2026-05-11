@@ -53,6 +53,13 @@ For each normal run, a SteamKit/PICS helper should snapshot:
 - depot and branch metadata exposed in app product info, when present
 - raw JSON or normalized structured output suitable for diffing against the previous run
 
+Local helper:
+
+- `scripts/check_steamkit_pics.sh`
+- raw snapshot: `RUN_DIR/api/steamkit/pics-product-info.json`
+- normalized package/app report: `RUN_DIR/reports/steamkit-pics-packages.tsv`
+- summary lines: `RUN_DIR/reports/steamkit-pics-key-lines.txt`
+
 Operational constraints:
 
 - use a separate Steam account, not the user's main account

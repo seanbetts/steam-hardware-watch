@@ -8,7 +8,7 @@ Agent-oriented monitoring workflow for rumored or upcoming Valve hardware, focus
 
 It is designed to be run by a coding agent through the included `SKILL.md`, with scripts that:
 
-- check `Komodo`, `SteamDB`, `SteamTracking`, and Valve endpoints
+- check `Komodo`, `SteamKit/PICS`, `SteamDB`, `SteamTracking`, and Valve endpoints
 - check `SteamVR` depot metadata and the public SteamOS package mirror
 - save raw artifacts for each run
 - compare against the previous run
@@ -65,6 +65,7 @@ Required:
 
 Recommended:
 
+- `.NET SDK 10` for the SteamKit/PICS helper
 - `playwright-cli`
 - Google Chrome or Chromium available to Playwright
 - macOS `open` command with Google Chrome installed for the Komodo background bootstrap helper
@@ -118,6 +119,51 @@ scripts/close_steamdb.sh
 
 If both sources are blocked, bootstrap both before the run.
 
+## Optional SteamKit/PICS Account Setup
+
+SteamKit/PICS is the primary direct Steam metadata source for watched app and package movement. It requires a low-risk Steam account because the helper logs into Steam like a normal client and requests metadata only.
+
+Install requirement:
+
+```sh
+dotnet restore tools/steamkit-pics/SteamHardwarePics.csproj
+```
+
+Create a local-only env file:
+
+```sh
+mkdir -p .local
+cat > .local/steamkit-env.sh <<'EOF'
+STEAMKIT_USERNAME='your-watch-account'
+STEAMKIT_PASSWORD='your-watch-account-password'
+# Use one of these only when Steam Guard asks for it:
+# STEAMKIT_AUTH_CODE='email-code'
+# STEAMKIT_TWO_FACTOR_CODE='authenticator-code'
+EOF
+chmod 600 .local/steamkit-env.sh
+```
+
+Then run either the source directly:
+
+```sh
+scripts/check_steamkit_pics.sh ~/steam_hardware_watch/2026-05-11
+```
+
+or the normal watcher:
+
+```sh
+scripts/run_watch.sh 2026-05-11 ~/steam_hardware_watch /tmp/SteamTracking-master
+```
+
+Outputs:
+
+- `RUN_DIR/api/steamkit/pics-product-info.json`
+- `RUN_DIR/reports/steamkit-pics-packages.tsv`
+- `RUN_DIR/reports/steamkit-pics-key-lines.txt`
+- `RUN_DIR/reports/steamkit-pics-errors.txt`
+
+If the env file is missing, the script writes a non-fatal `missing_credentials` report so the normal watcher still completes. Do not use your main Steam account, do not poll aggressively, and do not extend this helper to protected depot downloads.
+
 ## Output
 
 Each run writes:
@@ -132,6 +178,7 @@ Each run writes:
 - `retrieved-visual-assets.tsv`
 - `blocked-visual-assets.tsv`
 - `manual-asset-urls.txt`
+- `steamkit-pics-packages.tsv`
 - `steamvr-depots-key-lines.txt`
 - `steamos-mirror-key-lines.txt`
 
@@ -372,6 +419,7 @@ SteamVR content is distributed through SteamPipe depots rather than the SteamOS 
 ## Current Known Limits
 
 - `Komodo` can block both `curl` and fresh browser automation.
+- `SteamKit/PICS` requires a separate Steam account and may need a fresh Steam Guard code on first login.
 - `SteamDB` can return a Cloudflare browser challenge to curl and fresh automated browser contexts.
 - `SteamVR` depot contents require a Steam install, Steam console, SteamCMD, or another depot downloader; the helper does not download large depots by default.
 - The SteamOS mirror is public, but package names are not proof of product launch state without corroborating evidence.
