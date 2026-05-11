@@ -8,6 +8,7 @@ ENV_FILE="${STEAMKIT_ENV_FILE:-$REPO_DIR/.local/steamkit-env.sh}"
 SESSION_FILE="${STEAMKIT_SESSION_FILE:-$REPO_DIR/.local/steamkit-session.json}"
 
 if [ -f "$ENV_FILE" ]; then
+  printf '%s\n' "Loading SteamKit environment from $ENV_FILE" >&2
   # shellcheck disable=SC1090
   . "$ENV_FILE"
 fi
@@ -33,6 +34,7 @@ fi
 
 mkdir -p "$(dirname "$SESSION_FILE")"
 
+printf '%s\n' "Starting SteamKit auth bootstrap. Waiting for Steam to request any required Guard confirmation..." >&2
 dotnet run --project "$PROJECT_DIR" -- --auth-session-out "$SESSION_FILE" --session-file "$SESSION_FILE"
 chmod 600 "$SESSION_FILE"
 printf '%s\n' "Saved SteamKit session to $SESSION_FILE"

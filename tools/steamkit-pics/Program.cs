@@ -213,9 +213,11 @@ static class AuthClient
             }
         });
 
+        Console.Error.WriteLine("Connecting to Steam...");
         steamClient.Connect();
         await CallbackPump.UntilAsync(manager, connected.Task, disconnected.Task, cancellationToken);
 
+        Console.Error.WriteLine("Connected. Starting Steam credential auth session...");
         var authTask = steamClient.Authentication.BeginAuthSessionViaCredentialsAsync(new AuthSessionDetails
         {
             Username = username,
@@ -230,6 +232,7 @@ static class AuthClient
 
         await CallbackPump.UntilAsync(manager, authTask, disconnected.Task, cancellationToken);
         var authSession = await authTask;
+        Console.Error.WriteLine("Auth session created. Waiting for Steam Guard confirmation or token response...");
         var pollTask = authSession.PollingWaitForResultAsync(cancellationToken);
         await CallbackPump.UntilAsync(manager, pollTask, disconnected.Task, cancellationToken);
         var result = await pollTask;
@@ -261,7 +264,16 @@ sealed class EnvAuthenticator(string? emailCode, string? deviceCode, bool accept
             return Task.FromResult(deviceCode);
         }
 
-        throw new InvalidOperationException("Steam mobile authenticator code required. Set STEAMKIT_TWO_FACTOR_CODE and rerun scripts/steamkit_auth.sh.");
+        if (!Console.IsInputRedirected)
+        {
+            return Task.FromResult(ReadRequiredSecret(
+                previousCodeWasIncorrect
+                    ? "Steam mobile authenticator code was rejected. Enter the current Steam mobile authenticator code: "
+                    : "Enter the current Steam mobile authenticator code: "
+            ));
+        }
+
+        throw new InvalidOperationException("Steam mobile authenticator code required. Set STEAMKIT_TWO_FACTOR_CODE or run scripts/steamkit_auth.sh from an interactive terminal.");
     }
 
     public Task<string> GetEmailCodeAsync(string email, bool previousCodeWasIncorrect)
@@ -271,10 +283,46 @@ sealed class EnvAuthenticator(string? emailCode, string? deviceCode, bool accept
             return Task.FromResult(emailCode);
         }
 
-        throw new InvalidOperationException($"Steam Guard email code required for {email}. Set STEAMKIT_AUTH_CODE and rerun scripts/steamkit_auth.sh.");
+        if (!Console.IsInputRedirected)
+        {
+            return Task.FromResult(ReadRequiredSecret(
+                previousCodeWasIncorrect
+                    ? $"Steam Guard email code for {email} was rejected. Enter the latest Steam Guard email code: "
+                    : $"Enter the Steam Guard email code sent to {email}: "
+            ));
+        }
+
+        throw new InvalidOperationException($"Steam Guard email code required for {email}. Set STEAMKIT_AUTH_CODE or run scripts/steamkit_auth.sh from an interactive terminal.");
     }
 
-    public Task<bool> AcceptDeviceConfirmationAsync() => Task.FromResult(acceptMobileConfirmation);
+    public Task<bool> AcceptDeviceConfirmationAsync()
+    {
+        if (acceptMobileConfirmation)
+        {
+            return Task.FromResult(true);
+        }
+
+        if (!Console.IsInputRedirected)
+        {
+            Console.Error.Write("Approve the Steam mobile confirmation, then press Enter to continue.");
+            _ = Console.ReadLine();
+            return Task.FromResult(true);
+        }
+
+        return Task.FromResult(false);
+    }
+
+    static string ReadRequiredSecret(string prompt)
+    {
+        Console.Error.Write(prompt);
+        var value = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new InvalidOperationException("Steam Guard code was empty.");
+        }
+
+        return value.Trim();
+    }
 }
 
 static class CallbackPump
@@ -292,7 +340,9 @@ static class CallbackPump
                 throw new InvalidOperationException(await disconnected);
             }
 
-            await manager.RunWaitCallbackAsync(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            manager.RunWaitCallbacks(TimeSpan.FromMilliseconds(250));
+            await Task.Yield();
         }
 
         await primary;

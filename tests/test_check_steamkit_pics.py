@@ -125,6 +125,7 @@ class CheckSteamKitPicsTests(unittest.TestCase):
             {
                 "PATH": f"{fake_bin}:{env['PATH']}",
                 "STEAMKIT_ENV_FILE": str(tmp_path / "missing-env.sh"),
+                "STEAMKIT_SESSION_FILE": str(tmp_path / "missing-session.json"),
             }
         )
         env.pop("STEAMKIT_USERNAME", None)
@@ -483,7 +484,7 @@ class SteamKitAuthScriptTests(unittest.TestCase):
             check=False,
         )
 
-        self.assertEqual("", result.stderr)
+        self.assertIn("Starting SteamKit auth bootstrap", result.stderr)
         self.assertEqual(0, result.returncode)
         self.assertTrue(session_file.exists())
         dotnet_args = log_path.read_text(encoding="utf-8")

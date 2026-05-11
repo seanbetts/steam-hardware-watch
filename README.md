@@ -144,7 +144,8 @@ mkdir -p .local
 cat > .local/steamkit-env.sh <<'EOF'
 STEAMKIT_USERNAME='your-watch-account'
 STEAMKIT_PASSWORD='your-watch-account-password'
-# Use one of these only for the one-time session bootstrap when Steam Guard asks for it:
+# Usually leave these unset and enter the code when scripts/steamkit_auth.sh prompts.
+# For non-interactive use, set one of these only when Steam Guard asks for it:
 # STEAMKIT_AUTH_CODE='email-code'
 # STEAMKIT_TWO_FACTOR_CODE='authenticator-code'
 # Or approve the mobile prompt manually, then set:

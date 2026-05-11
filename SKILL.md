@@ -148,7 +148,8 @@ Use a narrow SteamKit2 helper when available. It should:
 SteamKit auth handling:
 
 - keep `.local/steamkit-env.sh` and `.local/steamkit-session.json` local and uncommitted
-- use `STEAMKIT_AUTH_CODE`, `STEAMKIT_TWO_FACTOR_CODE`, or `STEAMKIT_ACCEPT_MOBILE_CONFIRMATION=1` only for the bootstrap command
+- prefer an interactive `scripts/steamkit_auth.sh` run for email or mobile guard challenges, because email codes are tied to the active login attempt
+- use `STEAMKIT_AUTH_CODE`, `STEAMKIT_TWO_FACTOR_CODE`, or `STEAMKIT_ACCEPT_MOBILE_CONFIRMATION=1` only for non-interactive bootstrap commands
 - remove one-time guard values from `.local/steamkit-env.sh` after `scripts/steamkit_auth.sh` succeeds
 - if routine checks fail because the refresh token expired or was revoked, ask the user to re-run `scripts/steamkit_auth.sh` with a fresh Steam Guard approval
 
