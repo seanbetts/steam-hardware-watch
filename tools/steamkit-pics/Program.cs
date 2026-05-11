@@ -6,6 +6,7 @@ var options = Args.Parse(args);
 Directory.CreateDirectory(options.OutDir);
 Directory.CreateDirectory(Path.GetDirectoryName(options.ReportPath) ?? ".");
 Directory.CreateDirectory(Path.GetDirectoryName(options.KeyLinesPath) ?? ".");
+Directory.CreateDirectory(Path.GetDirectoryName(options.MarkdownReportPath) ?? ".");
 
 var username = Env("STEAMKIT_USERNAME");
 var password = Env("STEAMKIT_PASSWORD");
@@ -36,18 +37,24 @@ await File.WriteAllTextAsync(
     cts.Token
 );
 
-var rows = ReportRows.Build(snapshot);
-await File.WriteAllLinesAsync(options.ReportPath, rows.Select(row => string.Join('\t', row.Select(CleanTsv))), cts.Token);
+var previous = PreviousRows.Load(options.PreviousReportPath);
+var rows = ReportRows.Build(snapshot, previous);
+await File.WriteAllLinesAsync(
+    options.ReportPath,
+    new[] { ReportRow.HeaderLine() }.Concat(rows.Select(row => row.ToTsv())),
+    cts.Token
+);
 
 var keyLines = new List<string> { "SteamKit/PICS package snapshot:" };
-keyLines.AddRange(rows.Take(40).Select(row => string.Join('\t', row.Select(CleanTsv))));
+keyLines.Add(ReportRow.HeaderLine());
+keyLines.AddRange(rows.Take(40).Select(row => row.ToTsv()));
 await File.WriteAllLinesAsync(options.KeyLinesPath, keyLines, cts.Token);
+
+await File.WriteAllTextAsync(options.MarkdownReportPath, MarkdownReport.Build(snapshot, rows, options.PreviousReportPath), cts.Token);
 
 static string? Env(string name) => Environment.GetEnvironmentVariable(name);
 
-static string CleanTsv(string? value) => (value ?? "").Replace('\t', ' ').Replace('\n', ' ').Trim();
-
-sealed record Args(string OutDir, string ReportPath, string KeyLinesPath)
+sealed record Args(string OutDir, string ReportPath, string KeyLinesPath, string MarkdownReportPath, string? PreviousReportPath)
 {
     public static Args Parse(string[] args)
     {
@@ -70,7 +77,11 @@ sealed record Args(string OutDir, string ReportPath, string KeyLinesPath)
         return new Args(
             Require(values, "--out-dir"),
             Require(values, "--report"),
-            Require(values, "--key-lines")
+            Require(values, "--key-lines"),
+            Require(values, "--markdown-report"),
+            values.TryGetValue("--previous-report", out var previousReport) && !string.IsNullOrWhiteSpace(previousReport)
+                ? previousReport
+                : null
         );
     }
 
@@ -302,35 +313,132 @@ sealed record KeyValueNode(string Name, string? Value, List<KeyValueNode> Childr
     }
 }
 
+sealed record PreviousRow(string ChangeNumber);
+
+static class PreviousRows
+{
+    public static Dictionary<string, PreviousRow> Load(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            return new Dictionary<string, PreviousRow>(StringComparer.Ordinal);
+        }
+
+        var lines = File.ReadAllLines(path);
+        if (lines.Length == 0)
+        {
+            return new Dictionary<string, PreviousRow>(StringComparer.Ordinal);
+        }
+
+        var header = lines[0].Split('\t');
+        var typeIndex = Array.IndexOf(header, "type");
+        var idIndex = Array.IndexOf(header, "id");
+        var changeIndex = Array.IndexOf(header, "changenumber");
+        if (typeIndex < 0 || idIndex < 0 || changeIndex < 0)
+        {
+            return new Dictionary<string, PreviousRow>(StringComparer.Ordinal);
+        }
+
+        var result = new Dictionary<string, PreviousRow>(StringComparer.Ordinal);
+        foreach (var line in lines.Skip(1))
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            var parts = line.Split('\t');
+            if (parts.Length <= Math.Max(typeIndex, Math.Max(idIndex, changeIndex)))
+            {
+                continue;
+            }
+
+            result[$"{parts[typeIndex]}:{parts[idIndex]}"] = new PreviousRow(parts[changeIndex]);
+        }
+
+        return result;
+    }
+}
+
+sealed record ReportRow(
+    string Type,
+    string Product,
+    string Id,
+    string Status,
+    string ChangeNumber,
+    string PreviousChangeNumber,
+    string ChangedSincePrevious,
+    string ShaHash,
+    string OnlyPublic,
+    string Name,
+    string RelatedIds,
+    string Details)
+{
+    public static string HeaderLine()
+        => string.Join('\t', new[]
+        {
+            "type",
+            "product",
+            "id",
+            "status",
+            "changenumber",
+            "previous_changenumber",
+            "changed_since_previous",
+            "sha_hash",
+            "only_public",
+            "name",
+            "related_ids",
+            "details",
+        });
+
+    public string ToTsv()
+        => string.Join('\t', new[]
+        {
+            Type,
+            Product,
+            Id,
+            Status,
+            ChangeNumber,
+            PreviousChangeNumber,
+            ChangedSincePrevious,
+            ShaHash,
+            OnlyPublic,
+            Name,
+            RelatedIds,
+            Details,
+        }.Select(Tsv.Clean));
+}
+
+static class Tsv
+{
+    public static string Clean(string? value) => (value ?? "").Replace('\t', ' ').Replace('\n', ' ').Trim();
+}
+
 static class ReportRows
 {
-    public static List<string[]> Build(PicsSnapshot snapshot)
+    public static List<ReportRow> Build(PicsSnapshot snapshot, Dictionary<string, PreviousRow> previous)
     {
-        var rows = new List<string[]>
-        {
-            new[] { "type", "product", "id", "status", "changenumber", "related_ids", "details" },
-        };
-
+        var rows = new List<ReportRow>();
         foreach (var (id, product) in Targets.Apps.OrderBy(pair => pair.Key))
         {
             var key = id.ToString();
             rows.Add(snapshot.Apps.TryGetValue(key, out var info)
-                ? AppRow(product, info)
-                : MissingRow("app", product, id, snapshot.UnknownApps.Contains(id) ? "unknown" : "missing"));
+                ? AppRow(product, info, previous)
+                : MissingRow("app", product, id, snapshot.UnknownApps.Contains(id) ? "unknown" : "missing", previous));
         }
 
         foreach (var (id, product) in Targets.Packages.OrderBy(pair => pair.Key))
         {
             var key = id.ToString();
             rows.Add(snapshot.Packages.TryGetValue(key, out var info)
-                ? PackageRow(product, info)
-                : MissingRow("package", product, id, snapshot.UnknownPackages.Contains(id) ? "unknown" : "missing"));
+                ? PackageRow(product, info, previous)
+                : MissingRow("package", product, id, snapshot.UnknownPackages.Contains(id) ? "unknown" : "missing", previous));
         }
 
         return rows;
     }
 
-    static string[] AppRow(string product, ProductInfo info)
+    static ReportRow AppRow(string product, ProductInfo info, Dictionary<string, PreviousRow> previous)
     {
         var name = info.KeyValues?.Path("common", "name") ?? "";
         var depotIds = info.KeyValues?.Child("depots")?.Children
@@ -338,44 +446,164 @@ static class ReportRows
             .Select(child => child.Name)
             .Order()
             .ToArray() ?? Array.Empty<string>();
-        var branchCount = info.KeyValues?.Child("depots")?.Child("branches")?.Children.Count ?? 0;
-        var status = info.MissingToken ? "missing_token" : "available";
-        var details = $"name={name}; depots={depotIds.Length}; branches={branchCount}; only_public={info.OnlyPublic}";
+        var branches = info.KeyValues?.Child("depots")?.Child("branches")?.Children ?? new List<KeyValueNode>();
+        var branchNames = branches.Select(branch => branch.Name).Where(name => !string.IsNullOrWhiteSpace(name)).Order().ToArray();
+        var branchBuildIds = branches
+            .Select(branch => (branch.Name, BuildId: branch.Path("buildid")))
+            .Where(branch => !string.IsNullOrWhiteSpace(branch.Name) && !string.IsNullOrWhiteSpace(branch.BuildId))
+            .Select(branch => $"{branch.Name}:{branch.BuildId}")
+            .Order()
+            .ToArray();
+        var status = info.MissingToken ? "private_metadata_token_required" : "available";
+        var details = $"depots_count={depotIds.Length}; branch_names={string.Join(",", branchNames)}; branch_buildids={string.Join(",", branchBuildIds)}";
 
-        return new[]
-        {
+        return WithPrevious(
             "app",
             product,
             info.Id.ToString(),
             status,
             info.ChangeNumber.ToString(),
+            info.ShaHash ?? "",
+            info.OnlyPublic.ToString(),
+            name,
             string.Join(",", depotIds),
             details,
-        };
+            previous
+        );
     }
 
-    static string[] PackageRow(string product, ProductInfo info)
+    static ReportRow PackageRow(string product, ProductInfo info, Dictionary<string, PreviousRow> previous)
     {
         var appIds = info.KeyValues?.Child("appids")?.Children
             .Select(child => child.Name)
             .Where(name => uint.TryParse(name, out _))
             .Order()
             .ToArray() ?? Array.Empty<string>();
-        var status = info.MissingToken ? "missing_token" : "available";
-        var details = $"apps={string.Join(",", appIds)}; only_public={info.OnlyPublic}";
+        var name = info.KeyValues?.Path("name") ?? info.KeyValues?.Path("common", "name") ?? "";
+        var status = info.MissingToken ? "private_metadata_token_required" : "available";
+        var details = $"apps_count={appIds.Length}";
 
-        return new[]
-        {
+        return WithPrevious(
             "package",
             product,
             info.Id.ToString(),
             status,
             info.ChangeNumber.ToString(),
+            info.ShaHash ?? "",
+            info.OnlyPublic.ToString(),
+            name,
             string.Join(",", appIds),
             details,
-        };
+            previous
+        );
     }
 
-    static string[] MissingRow(string type, string product, uint id, string status)
-        => new[] { type, product, id.ToString(), status, "", "", "PICS product info was not returned" };
+    static ReportRow MissingRow(string type, string product, uint id, string status, Dictionary<string, PreviousRow> previous)
+        => WithPrevious(type, product, id.ToString(), status, "", "", "", "", "", "PICS product info was not returned", previous);
+
+    static ReportRow WithPrevious(
+        string type,
+        string product,
+        string id,
+        string status,
+        string changeNumber,
+        string shaHash,
+        string onlyPublic,
+        string name,
+        string relatedIds,
+        string details,
+        Dictionary<string, PreviousRow> previous)
+    {
+        previous.TryGetValue($"{type}:{id}", out var previousRow);
+        var previousChange = previousRow?.ChangeNumber ?? "";
+        var changed = "";
+        if (!string.IsNullOrWhiteSpace(changeNumber))
+        {
+            changed = string.IsNullOrWhiteSpace(previousChange)
+                ? "new"
+                : previousChange == changeNumber ? "no" : "yes";
+        }
+
+        return new ReportRow(type, product, id, status, changeNumber, previousChange, changed, shaHash, onlyPublic, name, relatedIds, details);
+    }
+}
+
+static class MarkdownReport
+{
+    public static string Build(PicsSnapshot snapshot, List<ReportRow> rows, string? previousReportPath)
+    {
+        var lines = new List<string>
+        {
+            "# SteamKit / PICS Detail",
+            "",
+            $"Fetched at UTC: `{snapshot.FetchedAtUtc:O}`",
+            "",
+            "SteamKit/PICS is the direct Steam metadata check. A `private_metadata_token_required` status means Steam returned the product shell and changenumber but withheld private product details without a PICS token. For this project, that is still useful as a movement signal, not a public-readiness signal.",
+            "",
+        };
+
+        if (!string.IsNullOrWhiteSpace(previousReportPath))
+        {
+            lines.Add($"Previous report: `{previousReportPath}`");
+            lines.Add("");
+        }
+
+        var changedRows = rows.Where(row => row.ChangedSincePrevious is "yes" or "new").ToList();
+        lines.Add("## Changenumber Movement");
+        lines.Add("");
+        if (changedRows.Count == 0)
+        {
+            lines.Add("- No watched SteamKit/PICS changenumber movement versus the previous report.");
+        }
+        else
+        {
+            lines.AddRange(changedRows.Select(row =>
+                $"- `{row.Type}` `{row.Product}` `{row.Id}`: `{row.PreviousChangeNumber}` -> `{row.ChangeNumber}` (`{row.Status}`)"
+            ));
+        }
+
+        lines.Add("");
+        lines.Add("## Watched Products");
+        lines.Add("");
+        foreach (var product in rows.Select(row => row.Product).Distinct().Order())
+        {
+            lines.Add($"### {product}");
+            lines.Add("");
+            foreach (var row in rows.Where(row => row.Product == product).OrderBy(row => row.Type).ThenBy(row => row.Id))
+            {
+                var interpretation = row.Status == "available"
+                    ? "metadata available"
+                    : row.Status == "private_metadata_token_required"
+                        ? "movement signal only; private metadata is withheld"
+                        : "unavailable in this run";
+                lines.Add($"- `{row.Type}` `{row.Id}`: changenumber `{row.ChangeNumber}`, previous `{row.PreviousChangeNumber}`, changed `{row.ChangedSincePrevious}`, status `{row.Status}` ({interpretation}).");
+                if (!string.IsNullOrWhiteSpace(row.Name))
+                {
+                    lines.Add($"  Name: `{row.Name}`.");
+                }
+                if (!string.IsNullOrWhiteSpace(row.RelatedIds))
+                {
+                    lines.Add($"  Related IDs: `{row.RelatedIds}`.");
+                }
+                if (!string.IsNullOrWhiteSpace(row.ShaHash))
+                {
+                    lines.Add($"  SHA hash: `{row.ShaHash}`.");
+                }
+                if (!string.IsNullOrWhiteSpace(row.Details))
+                {
+                    lines.Add($"  Details: `{row.Details}`.");
+                }
+            }
+
+            lines.Add("");
+        }
+
+        lines.Add("## Raw Outputs");
+        lines.Add("");
+        lines.Add("- Raw JSON: `api/steamkit/pics-product-info.json`");
+        lines.Add("- Compact TSV: `reports/steamkit-pics-packages.tsv`");
+        lines.Add("");
+
+        return string.Join(Environment.NewLine, lines);
+    }
 }

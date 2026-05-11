@@ -7,12 +7,14 @@ if [ "$#" -lt 1 ]; then
 fi
 
 RUN_DATE="$1"
-BASE_DIR="${2:-$HOME/steam_hardware_watch}"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
+REPO_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
+BASE_DIR="${2:-$REPO_DIR/runs}"
 RUN_DIR="$BASE_DIR/$RUN_DATE"
 
 mkdir -p "$RUN_DIR/api" "$RUN_DIR/assets" "$RUN_DIR/frames" "$RUN_DIR/reports"
 
-RUN_NOTE_DIR="$(CDPATH= cd -- "$(dirname "$0")/../status/runs" && pwd)"
+RUN_NOTE_DIR="$(CDPATH= cd -- "$REPO_DIR/status/runs" && pwd)"
 RUN_NOTE="$RUN_NOTE_DIR/$RUN_DATE.md"
 
 if [ ! -f "$RUN_NOTE" ]; then

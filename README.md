@@ -30,7 +30,14 @@ It is a repeatable evidence-gathering workflow for answering a narrow set of que
 The normal entry point is the wrapper script:
 
 ```sh
-scripts/run_watch.sh YYYY-MM-DD /path/to/run-output /path/to/SteamTracking
+scripts/run_watch.sh YYYY-MM-DD
+```
+
+By default this writes ignored artifacts under `runs/YYYY-MM-DD` in this repo and uses `/tmp/SteamTracking-master`.
+Pass explicit paths only when you want to override those defaults:
+
+```sh
+scripts/run_watch.sh YYYY-MM-DD /custom/run-base /path/to/SteamTracking
 ```
 
 ## Repository Layout
@@ -51,6 +58,7 @@ Important directories:
 - `scripts/`: the runnable checks and report builders
 - `references/`: source map, Komodo notes, evidence rubric
 - `status/`: seeded baseline answer and run notes
+- `runs/`: local gitignored run artifacts
 
 ## Dependencies
 
@@ -92,10 +100,10 @@ chmod +x scripts/*.sh
 4. Run a watch pass:
 
 ```sh
-scripts/run_watch.sh 2026-04-25 ~/steam_hardware_watch /tmp/SteamTracking-master
+scripts/run_watch.sh 2026-04-25
 ```
 
-This creates a dated run folder under `~/steam_hardware_watch/2026-04-25`.
+This creates a dated run folder under `runs/2026-04-25`.
 
 ### Common Path
 
@@ -103,7 +111,7 @@ For the least disruptive Komodo flow, use the dedicated background browser boots
 
 ```sh
 scripts/bootstrap_komodo.sh
-scripts/run_watch.sh 2026-04-25 ~/steam_hardware_watch /tmp/SteamTracking-master
+scripts/run_watch.sh 2026-04-25
 scripts/close_komodo.sh
 ```
 
@@ -113,7 +121,7 @@ SteamDB can require the same live-browser treatment:
 
 ```sh
 scripts/bootstrap_steamdb.sh
-scripts/run_watch.sh 2026-04-25 ~/steam_hardware_watch /tmp/SteamTracking-master
+scripts/run_watch.sh 2026-04-25
 scripts/close_steamdb.sh
 ```
 
@@ -146,13 +154,13 @@ chmod 600 .local/steamkit-env.sh
 Then run either the source directly:
 
 ```sh
-scripts/check_steamkit_pics.sh ~/steam_hardware_watch/2026-05-11
+scripts/check_steamkit_pics.sh runs/2026-05-11
 ```
 
 or the normal watcher:
 
 ```sh
-scripts/run_watch.sh 2026-05-11 ~/steam_hardware_watch /tmp/SteamTracking-master
+scripts/run_watch.sh 2026-05-11
 ```
 
 Outputs:
@@ -160,6 +168,7 @@ Outputs:
 - `RUN_DIR/api/steamkit/pics-product-info.json`
 - `RUN_DIR/reports/steamkit-pics-packages.tsv`
 - `RUN_DIR/reports/steamkit-pics-key-lines.txt`
+- `RUN_DIR/reports/steamkit-pics-detail.md`
 - `RUN_DIR/reports/steamkit-pics-errors.txt`
 
 If the env file is missing, the script writes a non-fatal `missing_credentials` report so the normal watcher still completes. Do not use your main Steam account, do not poll aggressively, and do not extend this helper to protected depot downloads.
@@ -179,6 +188,7 @@ Each run writes:
 - `blocked-visual-assets.tsv`
 - `manual-asset-urls.txt`
 - `steamkit-pics-packages.tsv`
+- `steamkit-pics-detail.md`
 - `steamvr-depots-key-lines.txt`
 - `steamos-mirror-key-lines.txt`
 
@@ -262,7 +272,7 @@ If Komodo needs any manual interaction, switch to that dedicated window when con
 Then run:
 
 ```sh
-scripts/run_watch.sh 2026-04-25 ~/steam_hardware_watch /tmp/SteamTracking-master
+scripts/run_watch.sh 2026-04-25
 ```
 
 `check_komodo.sh` will automatically pick up `.local/komodo-env.sh` when present.
@@ -374,7 +384,7 @@ If SteamDB needs manual interaction, switch to that dedicated Chrome window, com
 Then run:
 
 ```sh
-scripts/run_watch.sh 2026-04-25 ~/steam_hardware_watch /tmp/SteamTracking-master
+scripts/run_watch.sh 2026-04-25
 ```
 
 `check_steamdb.sh` automatically picks up `.local/steamdb-env.sh` when present. `run_watch.sh` auto-closes the dedicated SteamDB browser at the end unless you set:

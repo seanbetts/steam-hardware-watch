@@ -59,6 +59,7 @@ Local helper:
 - raw snapshot: `RUN_DIR/api/steamkit/pics-product-info.json`
 - normalized package/app report: `RUN_DIR/reports/steamkit-pics-packages.tsv`
 - summary lines: `RUN_DIR/reports/steamkit-pics-key-lines.txt`
+- human-readable detail report: `RUN_DIR/reports/steamkit-pics-detail.md`
 
 Operational constraints:
 

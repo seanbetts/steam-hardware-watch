@@ -58,6 +58,8 @@ Use the source helpers when available:
 - [scripts/save_visual_assets.py](scripts/save_visual_assets.py)
 - [scripts/draft_status_update.py](scripts/draft_status_update.py)
 
+Default run artifacts live under the repo-local gitignored [runs](runs) directory. Use an explicit base directory only when the user asks to store artifacts elsewhere.
+
 Asset discovery should be dynamic:
 
 - discover from current-run Komodo metadata when available
@@ -137,7 +139,7 @@ Use a narrow SteamKit2 helper when available. It should:
 - load credentials from `.local/steamkit-env.sh` or equivalent environment variables
 - poll only watched Valve hardware app and package IDs
 - save raw app/package product-info snapshots and changenumbers
-- write `steamkit-pics-packages.tsv` and `steamkit-pics-key-lines.txt`
+- write `steamkit-pics-packages.tsv`, `steamkit-pics-key-lines.txt`, and `steamkit-pics-detail.md`
 - compare snapshots against the previous run
 - avoid protected depot downloads and aggressive polling
 
@@ -361,5 +363,5 @@ It will:
 Example:
 
 ```sh
-~/.codex/skills/steam-hardware-watch/scripts/run_watch.sh 2026-04-25 ~/steam_hardware_watch /tmp/SteamTracking-master
+~/.codex/skills/steam-hardware-watch/scripts/run_watch.sh 2026-04-25
 ```

@@ -15,10 +15,12 @@ auth/
 *.state.json
 *.storage.json
 
-# Ad hoc run output if someone chooses to place it inside the repo
+# Local run artifacts
+/runs/
+
+# Ad hoc scratch output if someone chooses to place it inside the repo
 artifacts/
 output/
-runs/
 tmp/
 scratch/
 

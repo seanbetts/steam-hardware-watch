@@ -7,11 +7,11 @@ if [ "$#" -lt 1 ]; then
 fi
 
 RUN_DATE="$1"
-BASE_DIR="${2:-$HOME/steam_hardware_watch}"
-TRACKING_DIR="${3:-/tmp/SteamTracking-master}"
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 REPO_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
+BASE_DIR="${2:-$REPO_DIR/runs}"
+TRACKING_DIR="${3:-/tmp/SteamTracking-master}"
 KOMODO_ENV_FILE="${KOMODO_ENV_FILE:-$REPO_DIR/.local/komodo-env.sh}"
 STEAMDB_ENV_FILE="${STEAMDB_ENV_FILE:-$REPO_DIR/.local/steamdb-env.sh}"
 

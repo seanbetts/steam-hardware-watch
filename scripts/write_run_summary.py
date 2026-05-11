@@ -138,6 +138,7 @@ def build(run_dir: Path):
         f"- Blocked assets: `{reports / 'blocked-visual-assets.tsv'}`",
         f"- Manual retry URLs: `{reports / 'manual-asset-urls.txt'}`",
         f"- SteamKit/PICS packages: `{reports / 'steamkit-pics-packages.tsv'}`",
+        f"- SteamKit/PICS detail: `{reports / 'steamkit-pics-detail.md'}`",
         f"- Customs shipments: `{reports / 'customs-shipments.md'}`",
     ]
 

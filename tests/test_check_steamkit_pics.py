@@ -88,6 +88,7 @@ class CheckSteamKitPicsTests(unittest.TestCase):
             out_dir=""
             report=""
             key_lines=""
+            markdown=""
             while [ "$#" -gt 0 ]; do
               case "$1" in
                 --out-dir)
@@ -102,20 +103,25 @@ class CheckSteamKitPicsTests(unittest.TestCase):
                   shift
                   key_lines="$1"
                   ;;
+                --markdown-report)
+                  shift
+                  markdown="$1"
+                  ;;
               esac
               shift || true
             done
 
-            mkdir -p "$out_dir" "$(dirname "$report")" "$(dirname "$key_lines")"
+            mkdir -p "$out_dir" "$(dirname "$report")" "$(dirname "$key_lines")" "$(dirname "$markdown")"
             printf '%s\\n' '{"packages":{"1629484":{"change_number":35500001}}}' > "$out_dir/pics-product-info.json"
             {
-              printf '%s\\n' 'type	product	id	status	changenumber	related_ids	details'
-              printf '%s\\n' 'package	Steam Frame	1629484	available	35500001	4165890	apps=4165890:Steam Frame'
+              printf '%s\\n' 'type	product	id	status	changenumber	previous_changenumber	changed_since_previous	sha_hash	only_public	name	related_ids	details'
+              printf '%s\\n' 'package	Steam Frame	1629484	available	35500001	35500000	yes	abc123	False		4165890	apps=4165890:Steam Frame'
             } > "$report"
             {
               printf '%s\\n' 'SteamKit/PICS package snapshot:'
-              printf '%s\\n' 'package	Steam Frame	1629484	available	35500001	4165890	apps=4165890:Steam Frame'
+              printf '%s\\n' 'package	Steam Frame	1629484	available	35500001	35500000	yes	abc123	False		4165890	apps=4165890:Steam Frame'
             } > "$key_lines"
+            printf '%s\\n' '# SteamKit / PICS Detail' > "$markdown"
             """,
         )
 
@@ -145,14 +151,106 @@ class CheckSteamKitPicsTests(unittest.TestCase):
         dotnet_args = log_path.read_text(encoding="utf-8")
         self.assertIn("run --project", dotnet_args)
         self.assertIn("tools/steamkit-pics", dotnet_args)
+        self.assertIn("--markdown-report", dotnet_args)
 
         report = (run_dir / "reports" / "steamkit-pics-packages.tsv").read_text(
             encoding="utf-8"
         )
-        self.assertIn("package\tSteam Frame\t1629484\tavailable\t35500001", report)
+        self.assertIn("previous_changenumber\tchanged_since_previous", report)
+        self.assertIn("package\tSteam Frame\t1629484\tavailable\t35500001\t35500000\tyes", report)
         self.assertTrue(
             (run_dir / "api" / "steamkit" / "pics-product-info.json").exists()
         )
+        self.assertTrue((run_dir / "reports" / "steamkit-pics-detail.md").exists())
+
+    def test_passes_previous_report_when_prior_run_exists(self):
+        tmp = TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        tmp_path = Path(tmp.name)
+        previous_run = tmp_path / "2026-05-10"
+        run_dir = tmp_path / "2026-05-11"
+        previous_reports = previous_run / "reports"
+        previous_reports.mkdir(parents=True)
+        previous_report = previous_reports / "steamkit-pics-packages.tsv"
+        previous_report.write_text(
+            "type\tproduct\tid\tstatus\tchangenumber\tprevious_changenumber\tchanged_since_previous\tsha_hash\tonly_public\tname\trelated_ids\tdetails\n"
+            "package\tSteam Frame\t1629484\tprivate_metadata_token_required\t35500000\t\t\tabc122\tFalse\t\t\tapps=\n",
+            encoding="utf-8",
+        )
+        fake_bin = tmp_path / "bin"
+        fake_bin.mkdir()
+        log_path = tmp_path / "dotnet-args.log"
+
+        write_executable(
+            fake_bin / "dotnet",
+            """
+            #!/bin/sh
+            printf '%s\\n' "$*" > "$FAKE_DOTNET_LOG"
+            previous=""
+            report=""
+            key_lines=""
+            markdown=""
+            out_dir=""
+            while [ "$#" -gt 0 ]; do
+              case "$1" in
+                --previous-report)
+                  shift
+                  previous="$1"
+                  ;;
+                --out-dir)
+                  shift
+                  out_dir="$1"
+                  ;;
+                --report)
+                  shift
+                  report="$1"
+                  ;;
+                --key-lines)
+                  shift
+                  key_lines="$1"
+                  ;;
+                --markdown-report)
+                  shift
+                  markdown="$1"
+                  ;;
+              esac
+              shift || true
+            done
+            test -s "$previous" || exit 11
+            mkdir -p "$out_dir" "$(dirname "$report")" "$(dirname "$key_lines")" "$(dirname "$markdown")"
+            printf '%s\\n' '{}' > "$out_dir/pics-product-info.json"
+            printf '%s\\n' 'type	product	id	status	changenumber	previous_changenumber	changed_since_previous	sha_hash	only_public	name	related_ids	details' > "$report"
+            printf '%s\\n' 'SteamKit/PICS package snapshot:' > "$key_lines"
+            printf '%s\\n' '# SteamKit / PICS Detail' > "$markdown"
+            """,
+        )
+
+        env = os.environ.copy()
+        env.update(
+            {
+                "PATH": f"{fake_bin}:{env['PATH']}",
+                "STEAMKIT_ENV_FILE": str(tmp_path / "missing-env.sh"),
+                "STEAMKIT_USERNAME": "watcher",
+                "STEAMKIT_PASSWORD": "secret",
+                "FAKE_DOTNET_LOG": str(log_path),
+            }
+        )
+
+        result = subprocess.run(
+            [str(ROOT / "scripts" / "check_steamkit_pics.sh"), str(run_dir)],
+            cwd=ROOT,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual("", result.stderr)
+        self.assertEqual(0, result.returncode)
+        dotnet_args = log_path.read_text(encoding="utf-8")
+        self.assertIn("--previous-report", dotnet_args)
+        self.assertIn(str(previous_report), dotnet_args)
 
     def test_exports_credentials_loaded_from_local_env_file_to_dotnet_helper(self):
         tmp = TemporaryDirectory()
@@ -184,6 +282,7 @@ class CheckSteamKitPicsTests(unittest.TestCase):
             out_dir=""
             report=""
             key_lines=""
+            markdown=""
             while [ "$#" -gt 0 ]; do
               case "$1" in
                 --out-dir)
@@ -198,14 +297,19 @@ class CheckSteamKitPicsTests(unittest.TestCase):
                   shift
                   key_lines="$1"
                   ;;
+                --markdown-report)
+                  shift
+                  markdown="$1"
+                  ;;
               esac
               shift || true
             done
 
-            mkdir -p "$out_dir" "$(dirname "$report")" "$(dirname "$key_lines")"
+            mkdir -p "$out_dir" "$(dirname "$report")" "$(dirname "$key_lines")" "$(dirname "$markdown")"
             printf '%s\\n' '{}' > "$out_dir/pics-product-info.json"
             printf '%s\\n' 'type	product	id	status	changenumber	related_ids	details' > "$report"
             printf '%s\\n' 'SteamKit/PICS package snapshot:' > "$key_lines"
+            printf '%s\\n' '# SteamKit / PICS Detail' > "$markdown"
             """,
         )
 
@@ -246,7 +350,7 @@ class SteamKitSummaryTests(unittest.TestCase):
         reports.mkdir(parents=True)
         (reports / "steamkit-pics-key-lines.txt").write_text(
             "SteamKit/PICS package snapshot:\n"
-            "package\tSteam Frame\t1629484\tavailable\t35500001\t4165890\tapps=4165890:Steam Frame\n",
+            "package\tSteam Frame\t1629484\tprivate_metadata_token_required\t35500001\t35500000\tyes\tabc123\tFalse\t\t4165890\tapps=4165890:Steam Frame\n",
             encoding="utf-8",
         )
         (reports / "steamkit-pics-errors.txt").write_text("", encoding="utf-8")

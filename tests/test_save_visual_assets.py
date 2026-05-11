@@ -226,7 +226,7 @@ class SaveVisualAssetsTests(unittest.TestCase):
                 {"title": "videoframe_789", "slug": "videoframe_789", "parent_id": ""},
                 "https://komodostation.com/wp-content/uploads/2026/04/videoframe_789-1024x576.png",
                 {
-                    "/Users/sean/steam_hardware_watch/2026-04-26/api/komodo/media-parent-section-433306.json"
+                    "/Users/sean/Coding/steam-hardware-watch/runs/2026-04-26/api/komodo/media-parent-section-433306.json"
                 },
             ),
         )

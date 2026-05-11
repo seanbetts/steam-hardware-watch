@@ -30,8 +30,9 @@ Last updated: `2026-05-11`
   - Controller package `1558609`: `35745078`
   - Machine packages `1629446`, `1629447`, `1629458`, `1629460`: `35672615`
   - Frame packages `1629484`, `1629486`: `35672606`
-- Machine and Frame apps/packages currently return `missing_token` / private product info, but changenumbers are visible and suitable for movement monitoring.
-- Raw snapshot: `/Users/sean/steam_hardware_watch/2026-05-11/api/steamkit/pics-product-info.json`
+- Machine and Frame apps/packages currently require private PICS metadata tokens, but changenumbers are visible and suitable for movement monitoring.
+- Raw snapshot: `/Users/sean/Coding/steam-hardware-watch/runs/2026-05-11/api/steamkit/pics-product-info.json`
+- Future runs also write `reports/steamkit-pics-detail.md` with human-readable product grouping, previous changenumber comparison, SHA hash, and exposed app/depot/branch fields.
 
 ### SteamDB
 
