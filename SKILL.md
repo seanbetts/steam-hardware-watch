@@ -1,6 +1,6 @@
 ---
 name: steam-hardware-watch
-description: Investigate rumored or upcoming Valve hardware launches, especially Steam Controller, Steam Machine, and Steam Frame. Use when the user wants recurring checks across Komodo, SteamDB, SteamTracking or GameTracking, Valve CDN or support endpoints, and customs or regulatory sources, with saved artifacts and an updated status ledger.
+description: Investigate rumored or upcoming Valve hardware launches, especially Steam Controller, Steam Machine, and Steam Frame. Use when the user wants recurring checks across Komodo, SteamKit/PICS, SteamDB, SteamTracking or GameTracking, Valve CDN or support endpoints, and customs or regulatory sources, with saved artifacts and an updated status ledger.
 ---
 
 # Steam Hardware Watch
@@ -76,12 +76,13 @@ Apply the rubric in [references/evidence-rubric.md](references/evidence-rubric.m
 Default source order:
 
 1. `Komodo`
-2. `SteamDB`
-3. `SteamTracking / GameTracking`
-4. `SteamVR depots`
-5. `SteamOS package mirror`
-6. `Valve support / store / CDN`
-7. `customs / regulatory`
+2. `SteamKit / PICS`
+3. `SteamDB`
+4. `SteamTracking / GameTracking`
+5. `SteamVR depots`
+6. `SteamOS package mirror`
+7. `Valve support / store / CDN`
+8. `customs / regulatory`
 
 Treat price and exact release date as unconfirmed unless directly exposed by a primary source.
 
@@ -125,16 +126,43 @@ Preferred human-in-the-loop fallback:
 - keep that browser running while the agent reuses it over `CDP`
 - use [scripts/close_komodo.sh](scripts/close_komodo.sh) when finished
 
-### 2. SteamDB
+### 2. SteamKit / PICS
 
-Check the controller app, packages, depots, and history. Prefer primary records.
+Treat SteamKit/PICS as the primary direct Steam metadata source for apps, packages, depots, branches, and changenumber movement.
 
-Primary reservation-package check:
+Use a narrow SteamKit2 helper when available. It should:
 
-- for Machine and Frame launch readiness, start with the SteamDB package pages for the known reservation package IDs
+- use a separate low-risk Steam account, not the user's main account
+- poll only watched Valve hardware app and package IDs
+- save raw app/package product-info snapshots and changenumbers
+- compare snapshots against the previous run
+- avoid protected depot downloads and aggressive polling
+
+Primary watched IDs:
+
+- apps: Controller `4165870`, Frame `4165890`, Machine `4165910`
+- packages:
+  - Controller baseline: `1558609`
+  - Machine: `1629446`, `1629447`, `1629458`, `1629460`
+  - Frame: `1629484`, `1629486`
+
+Interpretation:
+
+- SteamKit/PICS app/package changenumber or product-info movement is the earliest metadata-change signal for these package IDs.
+- SteamDB package pages are corroborating/human-readable views of similar metadata, not the primary source when SteamKit data is available.
+- Valve Store `appdetails` / `packagedetails` remains the public-readiness confirmation source for price, package groups, purchase/reservation state, and exact timing.
+- Do not broaden this into a full SteamDB clone or general Valve game tracker unless the user explicitly changes the project scope.
+
+### 3. SteamDB
+
+Check the controller app, packages, depots, and history as a corroborating public view of Steam metadata. Prefer SteamKit/PICS for direct app/package metadata when available.
+
+Reservation-package page check:
+
+- for Machine and Frame launch readiness, check the SteamDB package pages for the known reservation package IDs
 - record `Last Record Update`, `Last Changenumber`, inferred app association, and whether the page still says SteamDB has no information beyond package existence
 - compare those fields against the previous run before interpreting any noisier store-page timestamp
-- treat SteamDB package-page movement as the earliest update signal; use Valve `packagedetails` and app `appdetails` to determine whether that movement has become public purchase or reservation readiness
+- treat SteamDB package-page movement as high-signal corroboration of SteamKit/PICS movement; use Valve `packagedetails` and app `appdetails` to determine whether that movement has become public purchase or reservation readiness
 
 Watch for:
 
@@ -150,10 +178,11 @@ Known IDs and starting points are in [references/sources.md](references/sources.
 
 Reservation package monitoring:
 
-- check reservation-package IDs from SteamTracking/SteamDB on SteamDB first:
+- check reservation-package IDs with SteamKit/PICS first when the helper is available:
   - Machine: `1629446`, `1629447`, `1629458`, `1629460`
   - Frame: `1629484`, `1629486`
   - Controller baseline: `1558609`
+- then check the same IDs on SteamDB package pages for human-readable `Last Record Update` / changenumber corroboration
 - then check Machine app `4165910`, Frame app `4165890`, and Controller app `4165870` through Valve `appdetails`
 - treat private packages returning `packagedetails success:false` as meaningful existence evidence but not launch-ready by itself
 - treat any transition to public `packagedetails`, new `appdetails.packages`, `package_groups`, price, reservation text, purchase eligibility, or exact release timing as high-signal
@@ -169,7 +198,7 @@ If SteamDB returns a Cloudflare challenge, `check_steamdb.sh` should record the 
 
 The helper loads `.local/steamdb-env.sh` automatically and reuses the live browser over CDP when `STEAMDB_PLAYWRIGHT_FALLBACK=1`.
 
-### 3. SteamTracking / GameTracking
+### 4. SteamTracking / GameTracking
 
 Look for:
 
@@ -188,7 +217,7 @@ Known reservation-package code baseline:
 
 Only summarize findings that materially affect launch-readiness or architecture inference.
 
-### 4. SteamVR Depots
+### 5. SteamVR Depots
 
 Check SteamVR app `250820` metadata and any local SteamVR install or downloaded depot snapshots.
 
@@ -203,7 +232,7 @@ Use [scripts/check_steamvr_depots.sh](scripts/check_steamvr_depots.sh). By defau
 
 Treat SteamVR depot content as especially high-signal for `Steam Frame` and VR controller clues.
 
-### 5. SteamOS Package Mirror
+### 6. SteamOS Package Mirror
 
 Check Valve's public SteamOS Arch package mirror.
 
@@ -217,7 +246,7 @@ Watch for:
 
 Use [scripts/check_steamos_mirror.sh](scripts/check_steamos_mirror.sh). Treat `jupiter` as Steam Deck-specific unless a file or package explicitly mentions another codename. Treat the mirror as stronger evidence for OS/platform integration than for product naming.
 
-### 6. Valve Support / Store / CDN
+### 7. Valve Support / Store / CDN
 
 Run these every time if quick:
 
@@ -233,7 +262,7 @@ The helper script is intentionally conservative. Add extra URLs when new officia
 Do not treat generic Steam Deck site media as relevant unless it is directly tied to controller, machine, or frame evidence.
 Do not treat `rtime32_last_modified` alone as a content update; it can move with votes/comments. Prefer normalized hidden-payload hashes, `announcement_body.updatetime`, `valve_access_log.rtUpdated`, package visibility, price, package groups, reservation state, or purchase markers.
 
-### 7. Customs / Regulatory
+### 8. Customs / Regulatory
 
 Use [scripts/check_customs_shipments.sh](scripts/check_customs_shipments.sh) for shipment-level customs checks.
 
@@ -255,6 +284,7 @@ Do not use HMRC UK Trade Info for launch monitoring. It is lagged monthly trader
 Strong examples:
 
 - new controller-only Komodo section rollout
+- SteamKit/PICS app/package changenumber or product-info movement for watched Valve hardware IDs
 - new SteamDB unboxing or store media
 - SteamDB package-page `Last Record Update` / changenumber movement for Machine or Frame reservation packages
 - published price or release date

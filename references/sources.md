@@ -26,6 +26,41 @@ Known section IDs from `2026-04-24` controller rollout:
 - `433470` features
 - `433484` spec image
 
+## SteamKit / PICS
+
+Treat SteamKit/PICS as the primary direct Steam metadata source for watched app/package movement.
+
+References:
+
+- SteamKit source: `https://github.com/SteamRE/SteamKit`
+- SteamKit2 NuGet: `https://www.nuget.org/packages/SteamKit2`
+- relevant SteamKit concept: `SteamApps.PICSGetProductInfo`
+
+Primary targets:
+
+- `Steam Controller app`: `4165870`
+- `Steam Machine app`: `4165910`
+- `Steam Frame app`: `4165890`
+- `Steam Controller package`: `1558609`
+- `Steam Machine packages`: `1629446`, `1629447`, `1629458`, `1629460`
+- `Steam Frame packages`: `1629484`, `1629486`
+
+For each normal run, a SteamKit/PICS helper should snapshot:
+
+- app product-info payloads
+- package product-info payloads
+- changenumbers
+- depot and branch metadata exposed in app product info, when present
+- raw JSON or normalized structured output suitable for diffing against the previous run
+
+Operational constraints:
+
+- use a separate Steam account, not the user's main account
+- keep polling narrow and conservative
+- do not download protected depot content
+- treat SteamKit/PICS metadata movement as the earliest app/package update signal
+- use Valve Store APIs below to confirm public price, package groups, purchase/reservation state, and exact timing
+
 ## SteamDB
 
 - `Steam Controller app`: `https://steamdb.info/app/4165870/`
@@ -41,12 +76,14 @@ Reservation/package IDs seen in SteamTracking reservation-system code and SteamD
 - `Steam Machine`: `1629446`, `1629447`, `1629458`, `1629460`
 - `Steam Frame`: `1629484`, `1629486`
 
-Primary update check: for each package ID, check the SteamDB package page first and record:
+SteamDB page check: for each package ID, check the SteamDB package page and record:
 
 - `Last Record Update`
 - `Last Changenumber`
 - possible app association or inferred app association
 - whether SteamDB still has no package information beyond existence
+
+Use SteamDB package pages as corroborating/human-readable views of package movement. Do not make SteamDB HTML scraping the primary source when SteamKit/PICS snapshots are available.
 
 SteamDB package pages:
 
