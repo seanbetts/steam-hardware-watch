@@ -1,6 +1,6 @@
 # Steam Hardware Watch Status
 
-Last updated: `2026-05-10`
+Last updated: `2026-05-11`
 
 ## Best Current Answer
 
@@ -12,7 +12,7 @@ Last updated: `2026-05-10`
 
 ### Komodo
 
-- Komodo API access worked on `2026-05-10`.
+- Komodo API access worked on `2026-05-11`.
 - Product modified timestamps:
   - Controller: `2026-05-08T15:55:26`
   - Machine: `2026-04-24T14:32:54`
@@ -20,15 +20,24 @@ Last updated: `2026-05-10`
 - Controller remains the only product with recent Komodo movement. Machine and Frame remain unchanged from their April 24 timestamps.
 - Visual asset retrieval completed for the current set: `141` discovered, `141` retrieved, `0` blocked.
 
+### SteamKit / PICS
+
+- SteamKit/PICS is now the primary direct Steam metadata baseline for watched app and package movement.
+- Baseline changenumbers from the repaired `2026-05-11` run:
+  - Controller app `4165870`: `35731145`
+  - Frame app `4165890`: `35675573`
+  - Machine app `4165910`: `35675573`
+  - Controller package `1558609`: `35745078`
+  - Machine packages `1629446`, `1629447`, `1629458`, `1629460`: `35672615`
+  - Frame packages `1629484`, `1629486`: `35672606`
+- Machine and Frame apps/packages currently return `missing_token` / private product info, but changenumbers are visible and suitable for movement monitoring.
+- Raw snapshot: `/Users/sean/steam_hardware_watch/2026-05-11/api/steamkit/pics-product-info.json`
+
 ### SteamDB
 
-- The SteamDB helper now includes the reservation package pages for:
-  - Controller: `1558609`
-  - Machine: `1629446`, `1629447`, `1629458`, `1629460`
-  - Frame: `1629484`, `1629486`
-- Automated SteamDB access and the dedicated browser fallback were still blocked on `2026-05-10`.
-- The saved package report is therefore a structural baseline, not a content baseline: all watched SteamDB package rows are `missing_or_blocked`.
-- A true SteamDB package baseline still requires a trusted browser session that can pass SteamDB's challenge and save the package pages.
+- Automated SteamDB access remained blocked on `2026-05-11`.
+- The package report is still a structural baseline, not a content baseline: all watched SteamDB package rows are `missing_or_blocked`.
+- SteamDB remains useful as corroborating/human-readable metadata once a trusted browser session can pass the challenge, but SteamKit/PICS now covers primary package movement.
 
 ### SteamTracking / GameTracking
 
@@ -62,11 +71,11 @@ Last updated: `2026-05-10`
   - Machine app `4165910`: public app metadata, `Coming soon`, no packages, no package groups, no price.
   - Machine packages `1629446`, `1629447`, `1629458`, `1629460`: `packagedetails success:false`.
   - Frame packages `1629484`, `1629486`: `packagedetails success:false`.
-- This is the cleanest public-readiness baseline heading into next week.
+- This remains the cleanest public-readiness baseline heading into next week.
 
 ### Customs / Regulatory
 
-- ImportInfo automated customs fetches were blocked on `2026-05-10`.
+- ImportInfo automated customs fetches were blocked on `2026-05-11`.
 - The latest useful customs evidence remains the `2026-05-01` NBD / ImportGenius pass:
   - `WIRELESS PC CONTROLLER` row dated `2026-04-04`.
   - `GAME CONSOLE` shipment arriving `2026-04-23` for `INGRAM MICRO C/O VALVE CORPORATION`.
@@ -76,12 +85,12 @@ Last updated: `2026-05-10`
 
 - When will Valve publish Steam Machine and Steam Frame prices?
 - When will Steam Machine and Steam Frame receive public packages or package groups?
-- Will SteamDB package `Last Record Update` / changenumber movement precede public Valve API readiness?
+- Will SteamKit/PICS changenumber movement precede public Valve API readiness?
 - Are the `fremont-hw-support` SteamOS packages related to Steam Machine launch preparation?
 
 ## Next Checks
 
-- Get one trusted-browser SteamDB package-page baseline for the watched package IDs.
+- Watch SteamKit/PICS changenumbers for all watched app and package IDs.
 - Watch Valve `appdetails` / `packagedetails` for Machine and Frame package or package-group exposure.
-- Watch SteamDB package `Last Record Update` and `Last Changenumber` deltas once the challenge can be passed.
+- Get one trusted-browser SteamDB package-page baseline if we still want human-readable SteamDB corroboration.
 - Continue normal Komodo, SteamTracking, SteamOS mirror, Valve API, and customs checks.
