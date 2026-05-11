@@ -12,6 +12,7 @@ REPORT_DIR="$RUN_DIR/reports"
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 REPO_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 PROJECT_DIR="$REPO_DIR/tools/steamkit-pics"
+SESSION_FILE="${STEAMKIT_SESSION_FILE:-$REPO_DIR/.local/steamkit-session.json}"
 mkdir -p "$OUT_DIR" "$REPORT_DIR"
 
 ERROR_FILE="$REPORT_DIR/steamkit-pics-errors.txt"
@@ -84,7 +85,12 @@ write_unavailable_report() {
 
 load_local_env
 
-if [ -z "${STEAMKIT_USERNAME:-}" ] || { [ -z "${STEAMKIT_PASSWORD:-}" ] && [ -z "${STEAMKIT_ACCESS_TOKEN:-}" ]; }; then
+HAS_SESSION=0
+if [ -s "$SESSION_FILE" ]; then
+  HAS_SESSION=1
+fi
+
+if [ "$HAS_SESSION" = "0" ] && { [ -z "${STEAMKIT_USERNAME:-}" ] || { [ -z "${STEAMKIT_PASSWORD:-}" ] && [ -z "${STEAMKIT_ACCESS_TOKEN:-}" ]; }; }; then
   detail="STEAMKIT_USERNAME/STEAMKIT_PASSWORD not set"
   if [ -n "${STEAMKIT_USERNAME:-}" ] && [ -z "${STEAMKIT_PASSWORD:-}" ]; then
     detail="STEAMKIT_PASSWORD or STEAMKIT_ACCESS_TOKEN not set"
@@ -135,6 +141,7 @@ if [ -n "$PREVIOUS_REPORT" ]; then
     --report "$REPORT_FILE" \
     --key-lines "$KEY_LINES_FILE" \
     --markdown-report "$DETAIL_REPORT_FILE" \
+    --session-file "$SESSION_FILE" \
     --previous-report "$PREVIOUS_REPORT" \
     >> "$REPORT_DIR/steamkit-pics-dotnet.log" 2>> "$ERROR_FILE"; then
     detail="SteamKit/PICS helper failed; see steamkit-pics-errors.txt and steamkit-pics-dotnet.log"
@@ -149,6 +156,7 @@ else
     --report "$REPORT_FILE" \
     --key-lines "$KEY_LINES_FILE" \
     --markdown-report "$DETAIL_REPORT_FILE" \
+    --session-file "$SESSION_FILE" \
     >> "$REPORT_DIR/steamkit-pics-dotnet.log" 2>> "$ERROR_FILE"; then
   detail="SteamKit/PICS helper failed; see steamkit-pics-errors.txt and steamkit-pics-dotnet.log"
     if [ ! -s "$REPORT_FILE" ]; then

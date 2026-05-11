@@ -136,12 +136,21 @@ Treat SteamKit/PICS as the primary direct Steam metadata source for apps, packag
 Use a narrow SteamKit2 helper when available. It should:
 
 - use a separate low-risk Steam account, not the user's main account
-- load credentials from `.local/steamkit-env.sh` or equivalent environment variables
+- bootstrap a persistent session with `scripts/steamkit_auth.sh` before normal runs
+- prefer `.local/steamkit-session.json` for routine checks so Steam Guard is not required every run
+- load bootstrap credentials from `.local/steamkit-env.sh` or equivalent environment variables only when a new session is needed
 - poll only watched Valve hardware app and package IDs
 - save raw app/package product-info snapshots and changenumbers
 - write `steamkit-pics-packages.tsv`, `steamkit-pics-key-lines.txt`, and `steamkit-pics-detail.md`
 - compare snapshots against the previous run
 - avoid protected depot downloads and aggressive polling
+
+SteamKit auth handling:
+
+- keep `.local/steamkit-env.sh` and `.local/steamkit-session.json` local and uncommitted
+- use `STEAMKIT_AUTH_CODE`, `STEAMKIT_TWO_FACTOR_CODE`, or `STEAMKIT_ACCEPT_MOBILE_CONFIRMATION=1` only for the bootstrap command
+- remove one-time guard values from `.local/steamkit-env.sh` after `scripts/steamkit_auth.sh` succeeds
+- if routine checks fail because the refresh token expired or was revoked, ask the user to re-run `scripts/steamkit_auth.sh` with a fresh Steam Guard approval
 
 Primary watched IDs:
 

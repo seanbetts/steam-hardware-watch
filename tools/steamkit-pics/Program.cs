@@ -1,38 +1,74 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using SteamKit2;
+using SteamKit2.Authentication;
+using SteamKit2.Internal;
 
 var options = Args.Parse(args);
-Directory.CreateDirectory(options.OutDir);
-Directory.CreateDirectory(Path.GetDirectoryName(options.ReportPath) ?? ".");
-Directory.CreateDirectory(Path.GetDirectoryName(options.KeyLinesPath) ?? ".");
-Directory.CreateDirectory(Path.GetDirectoryName(options.MarkdownReportPath) ?? ".");
-
 var username = Env("STEAMKIT_USERNAME");
 var password = Env("STEAMKIT_PASSWORD");
 var accessToken = Env("STEAMKIT_ACCESS_TOKEN");
 var authCode = Env("STEAMKIT_AUTH_CODE");
 var twoFactorCode = Env("STEAMKIT_TWO_FACTOR_CODE");
+var acceptMobileConfirmation = Env("STEAMKIT_ACCEPT_MOBILE_CONFIRMATION") == "1";
 var timeoutSeconds = int.TryParse(Env("STEAMKIT_TIMEOUT_SECONDS"), out var parsedTimeout)
     ? parsedTimeout
     : 90;
 
-if (string.IsNullOrWhiteSpace(username) || (string.IsNullOrWhiteSpace(password) && string.IsNullOrWhiteSpace(accessToken)))
-{
-    throw new InvalidOperationException("STEAMKIT_USERNAME and STEAMKIT_PASSWORD or STEAMKIT_ACCESS_TOKEN are required.");
-}
-
 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
-var snapshot = await PicsClient.FetchAsync(username, password, accessToken, authCode, twoFactorCode, cts.Token);
-
 var jsonOptions = new JsonSerializerOptions
 {
     WriteIndented = true,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
 };
 
+if (!string.IsNullOrWhiteSpace(options.AuthSessionOutPath))
+{
+    if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+    {
+        throw new InvalidOperationException("STEAMKIT_USERNAME and STEAMKIT_PASSWORD are required for auth bootstrap.");
+    }
+
+    var existingSession = SteamKitSession.Load(options.SessionFilePath);
+    var session = await AuthClient.CreateSessionAsync(
+        username,
+        password,
+        authCode,
+        twoFactorCode,
+        acceptMobileConfirmation,
+        existingSession?.GuardData,
+        cts.Token
+    );
+    Directory.CreateDirectory(Path.GetDirectoryName(options.AuthSessionOutPath) ?? ".");
+    await File.WriteAllTextAsync(options.AuthSessionOutPath, JsonSerializer.Serialize(session, jsonOptions) + Environment.NewLine, cts.Token);
+    return;
+}
+
+options.RequireWatchMode();
+Directory.CreateDirectory(options.OutDir!);
+Directory.CreateDirectory(Path.GetDirectoryName(options.ReportPath!) ?? ".");
+Directory.CreateDirectory(Path.GetDirectoryName(options.KeyLinesPath!) ?? ".");
+Directory.CreateDirectory(Path.GetDirectoryName(options.MarkdownReportPath!) ?? ".");
+
+var savedSession = SteamKitSession.Load(options.SessionFilePath);
+if (savedSession is not null)
+{
+    username = savedSession.Username;
+    password = null;
+    accessToken = savedSession.RefreshToken;
+    authCode = null;
+    twoFactorCode = null;
+}
+
+if (string.IsNullOrWhiteSpace(username) || (string.IsNullOrWhiteSpace(password) && string.IsNullOrWhiteSpace(accessToken)))
+{
+    throw new InvalidOperationException("STEAMKIT_USERNAME and STEAMKIT_PASSWORD, STEAMKIT_ACCESS_TOKEN, or a valid --session-file are required.");
+}
+
+var snapshot = await PicsClient.FetchAsync(username, password, accessToken, authCode, twoFactorCode, cts.Token);
+
 await File.WriteAllTextAsync(
-    Path.Combine(options.OutDir, "pics-product-info.json"),
+    Path.Combine(options.OutDir!, "pics-product-info.json"),
     JsonSerializer.Serialize(snapshot, jsonOptions) + Environment.NewLine,
     cts.Token
 );
@@ -40,7 +76,7 @@ await File.WriteAllTextAsync(
 var previous = PreviousRows.Load(options.PreviousReportPath);
 var rows = ReportRows.Build(snapshot, previous);
 await File.WriteAllLinesAsync(
-    options.ReportPath,
+    options.ReportPath!,
     new[] { ReportRow.HeaderLine() }.Concat(rows.Select(row => row.ToTsv())),
     cts.Token
 );
@@ -48,13 +84,20 @@ await File.WriteAllLinesAsync(
 var keyLines = new List<string> { "SteamKit/PICS package snapshot:" };
 keyLines.Add(ReportRow.HeaderLine());
 keyLines.AddRange(rows.Take(40).Select(row => row.ToTsv()));
-await File.WriteAllLinesAsync(options.KeyLinesPath, keyLines, cts.Token);
+await File.WriteAllLinesAsync(options.KeyLinesPath!, keyLines, cts.Token);
 
-await File.WriteAllTextAsync(options.MarkdownReportPath, MarkdownReport.Build(snapshot, rows, options.PreviousReportPath), cts.Token);
+await File.WriteAllTextAsync(options.MarkdownReportPath!, MarkdownReport.Build(snapshot, rows, options.PreviousReportPath), cts.Token);
 
 static string? Env(string name) => Environment.GetEnvironmentVariable(name);
 
-sealed record Args(string OutDir, string ReportPath, string KeyLinesPath, string MarkdownReportPath, string? PreviousReportPath)
+sealed record Args(
+    string? OutDir,
+    string? ReportPath,
+    string? KeyLinesPath,
+    string? MarkdownReportPath,
+    string? PreviousReportPath,
+    string? SessionFilePath,
+    string? AuthSessionOutPath)
 {
     public static Args Parse(string[] args)
     {
@@ -75,20 +118,33 @@ sealed record Args(string OutDir, string ReportPath, string KeyLinesPath, string
         }
 
         return new Args(
-            Require(values, "--out-dir"),
-            Require(values, "--report"),
-            Require(values, "--key-lines"),
-            Require(values, "--markdown-report"),
+            Optional(values, "--out-dir"),
+            Optional(values, "--report"),
+            Optional(values, "--key-lines"),
+            Optional(values, "--markdown-report"),
             values.TryGetValue("--previous-report", out var previousReport) && !string.IsNullOrWhiteSpace(previousReport)
                 ? previousReport
-                : null
+                : null,
+            Optional(values, "--session-file"),
+            Optional(values, "--auth-session-out")
         );
     }
 
-    static string Require(Dictionary<string, string> values, string key)
+    public void RequireWatchMode()
+    {
+        _ = Require(OutDir, "--out-dir");
+        _ = Require(ReportPath, "--report");
+        _ = Require(KeyLinesPath, "--key-lines");
+        _ = Require(MarkdownReportPath, "--markdown-report");
+    }
+
+    static string? Optional(Dictionary<string, string> values, string key)
         => values.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value)
             ? value
-            : throw new ArgumentException($"{key} is required.");
+            : null;
+
+    static string Require(string? value, string key)
+        => !string.IsNullOrWhiteSpace(value) ? value : throw new ArgumentException($"{key} is required.");
 }
 
 static class Targets
@@ -110,6 +166,137 @@ static class Targets
         [1629484] = "Steam Frame",
         [1629486] = "Steam Frame",
     };
+}
+
+sealed record SteamKitSession(
+    [property: JsonPropertyName("username")] string Username,
+    [property: JsonPropertyName("steam_id")] string? SteamId,
+    [property: JsonPropertyName("refresh_token")] string RefreshToken,
+    [property: JsonPropertyName("access_token")] string? AccessToken,
+    [property: JsonPropertyName("guard_data")] string? GuardData,
+    [property: JsonPropertyName("created_at_utc")] DateTimeOffset CreatedAtUtc)
+{
+    public static SteamKitSession? Load(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            return null;
+        }
+
+        var session = JsonSerializer.Deserialize<SteamKitSession>(File.ReadAllText(path));
+        return string.IsNullOrWhiteSpace(session?.RefreshToken) ? null : session;
+    }
+}
+
+static class AuthClient
+{
+    public static async Task<SteamKitSession> CreateSessionAsync(
+        string username,
+        string password,
+        string? emailCode,
+        string? deviceCode,
+        bool acceptMobileConfirmation,
+        string? guardData,
+        CancellationToken cancellationToken)
+    {
+        var steamClient = new SteamClient();
+        var manager = new CallbackManager(steamClient);
+        var connected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var disconnected = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        manager.Subscribe<SteamClient.ConnectedCallback>(_ => connected.TrySetResult());
+        manager.Subscribe<SteamClient.DisconnectedCallback>(callback =>
+        {
+            if (!callback.UserInitiated)
+            {
+                disconnected.TrySetResult("Steam disconnected before auth completed.");
+            }
+        });
+
+        steamClient.Connect();
+        await CallbackPump.UntilAsync(manager, connected.Task, disconnected.Task, cancellationToken);
+
+        var authTask = steamClient.Authentication.BeginAuthSessionViaCredentialsAsync(new AuthSessionDetails
+        {
+            Username = username,
+            Password = password,
+            DeviceFriendlyName = "steam-hardware-watch",
+            PlatformType = EAuthTokenPlatformType.k_EAuthTokenPlatformType_SteamClient,
+            WebsiteID = "Client",
+            IsPersistentSession = true,
+            GuardData = guardData,
+            Authenticator = new EnvAuthenticator(emailCode, deviceCode, acceptMobileConfirmation),
+        });
+
+        await CallbackPump.UntilAsync(manager, authTask, disconnected.Task, cancellationToken);
+        var authSession = await authTask;
+        var pollTask = authSession.PollingWaitForResultAsync(cancellationToken);
+        await CallbackPump.UntilAsync(manager, pollTask, disconnected.Task, cancellationToken);
+        var result = await pollTask;
+
+        steamClient.Disconnect();
+
+        if (string.IsNullOrWhiteSpace(result.RefreshToken))
+        {
+            throw new InvalidOperationException("Steam auth completed without a refresh token.");
+        }
+
+        return new SteamKitSession(
+            result.AccountName,
+            authSession is CredentialsAuthSession credentials ? credentials.SteamID.ToString() : null,
+            result.RefreshToken,
+            result.AccessToken,
+            result.NewGuardData,
+            DateTimeOffset.UtcNow
+        );
+    }
+}
+
+sealed class EnvAuthenticator(string? emailCode, string? deviceCode, bool acceptMobileConfirmation) : IAuthenticator
+{
+    public Task<string> GetDeviceCodeAsync(bool previousCodeWasIncorrect)
+    {
+        if (!string.IsNullOrWhiteSpace(deviceCode) && !previousCodeWasIncorrect)
+        {
+            return Task.FromResult(deviceCode);
+        }
+
+        throw new InvalidOperationException("Steam mobile authenticator code required. Set STEAMKIT_TWO_FACTOR_CODE and rerun scripts/steamkit_auth.sh.");
+    }
+
+    public Task<string> GetEmailCodeAsync(string email, bool previousCodeWasIncorrect)
+    {
+        if (!string.IsNullOrWhiteSpace(emailCode) && !previousCodeWasIncorrect)
+        {
+            return Task.FromResult(emailCode);
+        }
+
+        throw new InvalidOperationException($"Steam Guard email code required for {email}. Set STEAMKIT_AUTH_CODE and rerun scripts/steamkit_auth.sh.");
+    }
+
+    public Task<bool> AcceptDeviceConfirmationAsync() => Task.FromResult(acceptMobileConfirmation);
+}
+
+static class CallbackPump
+{
+    public static async Task UntilAsync(
+        CallbackManager manager,
+        Task primary,
+        Task<string> disconnected,
+        CancellationToken cancellationToken)
+    {
+        while (!primary.IsCompleted)
+        {
+            if (disconnected.IsCompleted)
+            {
+                throw new InvalidOperationException(await disconnected);
+            }
+
+            await manager.RunWaitCallbackAsync(cancellationToken);
+        }
+
+        await primary;
+    }
 }
 
 static class PicsClient
@@ -138,7 +325,7 @@ static class PicsClient
                 AccessToken = accessToken,
                 AuthCode = authCode,
                 TwoFactorCode = twoFactorCode,
-                ShouldRememberPassword = false,
+                ShouldRememberPassword = !string.IsNullOrWhiteSpace(accessToken),
             });
         });
 
@@ -167,7 +354,7 @@ static class PicsClient
         });
 
         steamClient.Connect();
-        await PumpUntilAsync(manager, login.Task, disconnected.Task, cancellationToken);
+        await CallbackPump.UntilAsync(manager, login.Task, disconnected.Task, cancellationToken);
 
         var aggregate = new ProductAggregate();
         var productInfo = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -184,7 +371,7 @@ static class PicsClient
             }
         });
 
-        await PumpUntilAsync(manager, productInfo.Task, disconnected.Task, cancellationToken);
+        await CallbackPump.UntilAsync(manager, productInfo.Task, disconnected.Task, cancellationToken);
 
         steamUser.LogOff();
         steamClient.Disconnect();
@@ -192,24 +379,6 @@ static class PicsClient
         return aggregate.ToSnapshot();
     }
 
-    static async Task PumpUntilAsync(
-        CallbackManager manager,
-        Task primary,
-        Task<string> disconnected,
-        CancellationToken cancellationToken)
-    {
-        while (!primary.IsCompleted)
-        {
-            if (disconnected.IsCompleted)
-            {
-                throw new InvalidOperationException(await disconnected);
-            }
-
-            await manager.RunWaitCallbackAsync(cancellationToken);
-        }
-
-        await primary;
-    }
 }
 
 sealed class ProductAggregate

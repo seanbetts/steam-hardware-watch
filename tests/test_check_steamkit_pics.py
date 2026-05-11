@@ -16,6 +16,93 @@ def write_executable(path, content):
 
 
 class CheckSteamKitPicsTests(unittest.TestCase):
+    def test_invokes_dotnet_helper_with_persistent_session_without_password(self):
+        tmp = TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        tmp_path = Path(tmp.name)
+        run_dir = tmp_path / "run"
+        session_file = tmp_path / "steamkit-session.json"
+        session_file.write_text(
+            '{"username":"watcher","refresh_token":"refresh-token","created_at_utc":"2026-05-11T00:00:00Z"}\n',
+            encoding="utf-8",
+        )
+        fake_bin = tmp_path / "bin"
+        fake_bin.mkdir()
+        log_path = tmp_path / "dotnet-args.log"
+
+        write_executable(
+            fake_bin / "dotnet",
+            """
+            #!/bin/sh
+            printf '%s\\n' "$*" > "$FAKE_DOTNET_LOG"
+            report=""
+            key_lines=""
+            markdown=""
+            out_dir=""
+            session=""
+            while [ "$#" -gt 0 ]; do
+              case "$1" in
+                --session-file)
+                  shift
+                  session="$1"
+                  ;;
+                --out-dir)
+                  shift
+                  out_dir="$1"
+                  ;;
+                --report)
+                  shift
+                  report="$1"
+                  ;;
+                --key-lines)
+                  shift
+                  key_lines="$1"
+                  ;;
+                --markdown-report)
+                  shift
+                  markdown="$1"
+                  ;;
+              esac
+              shift || true
+            done
+            test -s "$session" || exit 12
+            mkdir -p "$out_dir" "$(dirname "$report")" "$(dirname "$key_lines")" "$(dirname "$markdown")"
+            printf '%s\\n' '{}' > "$out_dir/pics-product-info.json"
+            printf '%s\\n' 'type	product	id	status	changenumber	previous_changenumber	changed_since_previous	sha_hash	only_public	name	related_ids	details' > "$report"
+            printf '%s\\n' 'SteamKit/PICS package snapshot:' > "$key_lines"
+            printf '%s\\n' '# SteamKit / PICS Detail' > "$markdown"
+            """,
+        )
+
+        env = os.environ.copy()
+        env.update(
+            {
+                "PATH": f"{fake_bin}:{env['PATH']}",
+                "STEAMKIT_ENV_FILE": str(tmp_path / "missing-env.sh"),
+                "STEAMKIT_SESSION_FILE": str(session_file),
+                "FAKE_DOTNET_LOG": str(log_path),
+            }
+        )
+        env.pop("STEAMKIT_USERNAME", None)
+        env.pop("STEAMKIT_PASSWORD", None)
+
+        result = subprocess.run(
+            [str(ROOT / "scripts" / "check_steamkit_pics.sh"), str(run_dir)],
+            cwd=ROOT,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual("", result.stderr)
+        self.assertEqual(0, result.returncode)
+        dotnet_args = log_path.read_text(encoding="utf-8")
+        self.assertIn("--session-file", dotnet_args)
+        self.assertIn(str(session_file), dotnet_args)
+        self.assertNotIn("missing_credentials", (run_dir / "reports" / "steamkit-pics-packages.tsv").read_text(encoding="utf-8"))
+
     def test_missing_credentials_writes_nonfatal_unavailable_report(self):
         tmp = TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -339,6 +426,70 @@ class CheckSteamKitPicsTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertEqual("", errors)
+
+
+class SteamKitAuthScriptTests(unittest.TestCase):
+    def test_auth_script_writes_session_file_using_dotnet_helper(self):
+        tmp = TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        tmp_path = Path(tmp.name)
+        env_file = tmp_path / "steamkit-env.sh"
+        session_file = tmp_path / "steamkit-session.json"
+        env_file.write_text(
+            "STEAMKIT_USERNAME='watcher'\n"
+            "STEAMKIT_PASSWORD='secret'\n"
+            "STEAMKIT_AUTH_CODE='ABCDE'\n",
+            encoding="utf-8",
+        )
+        fake_bin = tmp_path / "bin"
+        fake_bin.mkdir()
+        log_path = tmp_path / "dotnet-args.log"
+
+        write_executable(
+            fake_bin / "dotnet",
+            """
+            #!/bin/sh
+            printf '%s\\n' "$*" > "$FAKE_DOTNET_LOG"
+            out=""
+            while [ "$#" -gt 0 ]; do
+              if [ "$1" = "--auth-session-out" ]; then
+                shift
+                out="$1"
+              fi
+              shift || true
+            done
+            mkdir -p "$(dirname "$out")"
+            printf '%s\\n' '{"username":"watcher","refresh_token":"refresh","created_at_utc":"2026-05-11T00:00:00Z"}' > "$out"
+            """,
+        )
+
+        env = os.environ.copy()
+        env.update(
+            {
+                "PATH": f"{fake_bin}:{env['PATH']}",
+                "STEAMKIT_ENV_FILE": str(env_file),
+                "STEAMKIT_SESSION_FILE": str(session_file),
+                "FAKE_DOTNET_LOG": str(log_path),
+            }
+        )
+
+        result = subprocess.run(
+            [str(ROOT / "scripts" / "steamkit_auth.sh")],
+            cwd=ROOT,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual("", result.stderr)
+        self.assertEqual(0, result.returncode)
+        self.assertTrue(session_file.exists())
+        dotnet_args = log_path.read_text(encoding="utf-8")
+        self.assertIn("--auth-session-out", dotnet_args)
+        self.assertIn(str(session_file), dotnet_args)
+        self.assertIn("--session-file", dotnet_args)
 
 
 class SteamKitSummaryTests(unittest.TestCase):

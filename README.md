@@ -144,12 +144,22 @@ mkdir -p .local
 cat > .local/steamkit-env.sh <<'EOF'
 STEAMKIT_USERNAME='your-watch-account'
 STEAMKIT_PASSWORD='your-watch-account-password'
-# Use one of these only when Steam Guard asks for it:
+# Use one of these only for the one-time session bootstrap when Steam Guard asks for it:
 # STEAMKIT_AUTH_CODE='email-code'
 # STEAMKIT_TWO_FACTOR_CODE='authenticator-code'
+# Or approve the mobile prompt manually, then set:
+# STEAMKIT_ACCEPT_MOBILE_CONFIRMATION='1'
 EOF
 chmod 600 .local/steamkit-env.sh
 ```
+
+Bootstrap a persistent local session:
+
+```sh
+scripts/steamkit_auth.sh
+```
+
+This writes `.local/steamkit-session.json` with a Steam refresh token and guard data. The file is gitignored, should stay local, and is sensitive. After it is created, remove any one-time `STEAMKIT_AUTH_CODE`, `STEAMKIT_TWO_FACTOR_CODE`, or `STEAMKIT_ACCEPT_MOBILE_CONFIRMATION` line from `.local/steamkit-env.sh`.
 
 Then run either the source directly:
 
@@ -163,6 +173,8 @@ or the normal watcher:
 scripts/run_watch.sh 2026-05-11
 ```
 
+The normal watcher automatically uses `.local/steamkit-session.json`, so routine runs should not ask for a fresh Steam Guard code. If Steam invalidates the refresh token, rerun `scripts/steamkit_auth.sh` with a fresh guard approval to create a new session file.
+
 Outputs:
 
 - `RUN_DIR/api/steamkit/pics-product-info.json`
@@ -171,7 +183,7 @@ Outputs:
 - `RUN_DIR/reports/steamkit-pics-detail.md`
 - `RUN_DIR/reports/steamkit-pics-errors.txt`
 
-If the env file is missing, the script writes a non-fatal `missing_credentials` report so the normal watcher still completes. Do not use your main Steam account, do not poll aggressively, and do not extend this helper to protected depot downloads.
+If the env file and session file are missing, the script writes a non-fatal `missing_credentials` report so the normal watcher still completes. Do not use your main Steam account, do not poll aggressively, and do not extend this helper to protected depot downloads.
 
 ## Output
 
@@ -429,7 +441,7 @@ SteamVR content is distributed through SteamPipe depots rather than the SteamOS 
 ## Current Known Limits
 
 - `Komodo` can block both `curl` and fresh browser automation.
-- `SteamKit/PICS` requires a separate Steam account and may need a fresh Steam Guard code on first login.
+- `SteamKit/PICS` requires a separate Steam account and a one-time Steam Guard bootstrap to create `.local/steamkit-session.json`.
 - `SteamDB` can return a Cloudflare browser challenge to curl and fresh automated browser contexts.
 - `SteamVR` depot contents require a Steam install, Steam console, SteamCMD, or another depot downloader; the helper does not download large depots by default.
 - The SteamOS mirror is public, but package names are not proof of product launch state without corroborating evidence.
