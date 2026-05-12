@@ -164,6 +164,7 @@ Primary watched IDs:
 Interpretation:
 
 - SteamKit/PICS app/package changenumber or product-info movement is the earliest metadata-change signal for these package IDs.
+- When package movement clusters tightly across related hardware package IDs, preserve any available per-package history timestamps and change counts. Compare against known Controller precedent: package `1558609` had a clustered change pattern plus a later follow-up before public purchase timing appeared. Treat similarity as an imminent-preorder heuristic, not confirmation.
 - SteamDB package pages are corroborating/human-readable views of similar metadata, not the primary source when SteamKit data is available.
 - Valve Store `appdetails` / `packagedetails` remains the public-readiness confirmation source for price, package groups, purchase/reservation state, and exact timing.
 - Do not broaden this into a full SteamDB clone or general Valve game tracker unless the user explicitly changes the project scope.
