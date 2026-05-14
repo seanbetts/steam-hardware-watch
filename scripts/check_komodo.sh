@@ -109,6 +109,18 @@ fetch_json "sections-frame-search" "https://komodostation.com/wp-json/wp/v2/sect
 fetch_json "media-controller-search" "https://komodostation.com/wp-json/wp/v2/media?search=Steam%20Controller&per_page=100" || true
 fetch_json "media-parent-product-controller" "https://komodostation.com/wp-json/wp/v2/media?parent=413763&per_page=100" || true
 
+for optional_array in \
+  sections-controller-search \
+  sections-machine-search \
+  sections-frame-search \
+  media-controller-search \
+  media-parent-product-controller
+do
+  if [ ! -f "$OUT_DIR/$optional_array.json" ]; then
+    printf '%s\n' "[]" > "$OUT_DIR/$optional_array.json"
+  fi
+done
+
 for id in $(jq -r '.[].id' "$OUT_DIR/sections-controller-search.json" 2>/dev/null || true); do
   fetch_json "media-parent-section-$id" "https://komodostation.com/wp-json/wp/v2/media?parent=$id&per_page=100" || true
 done
