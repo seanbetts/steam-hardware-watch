@@ -51,6 +51,25 @@ IMPORTINFO_HTML = textwrap.dedent(
 )
 
 
+IMPORTGENIUS_HTML = textwrap.dedent(
+    """
+    <html>
+      <body>
+        <h1>Ingram Micro C/o Valve Corporation</h1>
+        <p>Updated: 2026-05-18</p>
+        <section>
+          <h2>Importer Shipments</h2>
+          <p>#  Bill of Lading  Product  Importer  Supplier  Arrival Date  Country of Origin  Gross Weight KGS  Quantity</p>
+          <p>1  SNHBSHACHI265020  GAME CONSOLE  INGRAM MICRO C/O VALVE CORPORATION  TECH-FRONT (CHONGQING) COMPUTER CO  2026-05-18  China  14353 Kgs  42 PKG</p>
+          <p>2  SNHBSHACHI264140  GAME CONSOLE  INGRAM MICRO C/O VALVE CORPORATION  TECH-FRONT (CHONGQING) COMPUTER CO  2026-05-18  China  14533 Kgs  42 PKG</p>
+          <p>3  SNHBSHACHI264031  GAME CONSOLE  INGRAM MICRO C/O VALVE CORPORATION  TECH-FRONT (CHONGQING) COMPUTER CO  2026-05-08  China  12615 Kgs  42 PKG</p>
+        </section>
+      </body>
+    </html>
+    """
+)
+
+
 def run_parser(args, reports):
     return subprocess.run(
         [
@@ -242,6 +261,34 @@ class CustomsShipmentParserTests(unittest.TestCase):
             self.assertEqual(["SNHBSHALAX264014"], [row["house_bol"] for row in rows])
             self.assertEqual("https://example.test/ceva", rows[0]["source_url"])
 
+    def test_extracts_relevant_importgenius_rows(self):
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            html = tmp_path / "importgenius-ingram.html"
+            html.write_text(IMPORTGENIUS_HTML, encoding="utf-8")
+            reports = tmp_path / "reports"
+
+            result = run_parser(["--input", f"importgenius-ingram-valve={html}"], reports)
+
+            self.assertEqual("", result.stderr)
+            self.assertEqual(0, result.returncode)
+            rows = read_rows(reports)
+            self.assertEqual(
+                ["SNHBSHACHI265020", "SNHBSHACHI264140", "SNHBSHACHI264031"],
+                [row["house_bol"] for row in rows],
+            )
+            self.assertEqual("GAME CONSOLE", rows[0]["commodity"])
+            self.assertEqual("INGRAM MICRO C/O VALVE CORPORATION", rows[0]["consignee"])
+            self.assertEqual("TECH-FRONT (CHONGQING) COMPUTER CO", rows[0]["shipper"])
+            self.assertEqual("2026-05-18", rows[0]["arrival_date"])
+            self.assertEqual("14353 Kgs", rows[0]["weight"])
+
+            key_lines = (reports / "customs-shipments-key-lines.txt").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("SNHBSHACHI265020", key_lines)
+            self.assertIn("2026-05-18", key_lines)
+
 
 class CheckCustomsShipmentsShellTests(unittest.TestCase):
     def test_fetches_pages_and_runs_parser(self):
@@ -357,6 +404,60 @@ class CheckCustomsShipmentsShellTests(unittest.TestCase):
             ).read_text(encoding="utf-8")
             self.assertEqual("", key_lines)
 
+    def test_fetches_importgenius_public_importer_page(self):
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            run_dir = tmp_path / "run"
+            fake_bin = tmp_path / "bin"
+            fake_bin.mkdir()
+            (tmp_path / "importgenius-fixture.html").write_text(
+                IMPORTGENIUS_HTML, encoding="utf-8"
+            )
+            write_executable(
+                fake_bin / "curl",
+                f"""
+                #!/bin/sh
+                for arg do
+                  url="$arg"
+                done
+                case "$url" in
+                  *importgenius.com/importers/ingram-micro-c-o-valve-corporation)
+                    cat "{tmp_path / "importgenius-fixture.html"}"
+                    ;;
+                  *)
+                    exit 22
+                    ;;
+                esac
+                """,
+            )
+            env = os.environ.copy()
+            env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
+
+            result = subprocess.run(
+                [str(ROOT / "scripts" / "check_customs_shipments.sh"), str(run_dir)],
+                cwd=ROOT,
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+            self.assertEqual("", result.stderr)
+            self.assertEqual(0, result.returncode)
+            self.assertTrue(
+                (
+                    run_dir
+                    / "api"
+                    / "customs"
+                    / "importgenius-ingram-valve.html"
+                ).exists()
+            )
+            key_lines = (
+                run_dir / "reports" / "customs-shipments-key-lines.txt"
+            ).read_text(encoding="utf-8")
+            self.assertIn("SNHBSHACHI265020", key_lines)
+
 
 class CustomsSummaryIntegrationTests(unittest.TestCase):
     def test_run_summary_and_status_draft_include_customs_lines(self):
@@ -405,6 +506,59 @@ class CustomsSummaryIntegrationTests(unittest.TestCase):
             self.assertIn("SNHBSHALAX264015", run_summary)
             self.assertIn("Customs / Shipments", status_draft)
             self.assertIn("GAME CONSOLE", status_draft)
+
+    def test_customs_rows_with_source_errors_are_reported_as_partial(self):
+        with TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "2026-05-22"
+            reports = run_dir / "reports"
+            reports.mkdir(parents=True)
+            (reports / "customs-shipments-key-lines.txt").write_text(
+                "2026-05-18\tINGRAM MICRO C/O VALVE CORPORATION\tTECH-FRONT (CHONGQING) COMPUTER CO\tGAME CONSOLE\t42 PKG\t14353 Kgs\tSNHBSHACHI265020\n",
+                encoding="utf-8",
+            )
+            (reports / "customs-shipments-errors.txt").write_text(
+                "failed to fetch https://www.importinfo.com/search?s=CEVA%20C%2FO%20VALVE%20CORPORATION\n",
+                encoding="utf-8",
+            )
+            (reports / "customs-shipments.md").write_text(
+                "# Customs Shipments\n\nRelevant shipment count: 1\n",
+                encoding="utf-8",
+            )
+
+            summary = subprocess.run(
+                [
+                    "python3",
+                    str(ROOT / "scripts" / "write_run_summary.py"),
+                    "--run-dir",
+                    str(run_dir),
+                ],
+                cwd=ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            draft = subprocess.run(
+                [
+                    "python3",
+                    str(ROOT / "scripts" / "draft_status_update.py"),
+                    "--run-dir",
+                    str(run_dir),
+                ],
+                cwd=ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+            self.assertEqual(0, summary.returncode)
+            self.assertEqual(0, draft.returncode)
+            run_summary = (reports / "run-summary.md").read_text(encoding="utf-8")
+            status_draft = (reports / "status-draft.md").read_text(encoding="utf-8")
+            self.assertIn("Customs shipments status: `partial`", run_summary)
+            self.assertIn("Customs shipment rows were captured", status_draft)
+            self.assertIn("SNHBSHACHI265020", status_draft)
 
     def test_status_draft_reports_missing_customs_outputs_as_unavailable(self):
         with TemporaryDirectory() as tmp:

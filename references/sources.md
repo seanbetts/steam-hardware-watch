@@ -228,6 +228,7 @@ Run ImportInfo customs checks every normal watch run because they are quick and 
 - ImportInfo automated search for Ingram/Valve: `https://www.importinfo.com/search?s=INGRAM%20MICRO%20C%2FO%20VALVE%20CORPORATION`
 - ImportInfo automated search for Tech-Front game console Valve: `https://www.importinfo.com/search?s=TECH-FRONT%20GAME%20CONSOLE%20VALVE`
 - ImportInfo automated search for Valve Corporation game console: `https://www.importinfo.com/search?s=VALVE%20CORPORATION%20GAME%20CONSOLE`
+- ImportGenius automated importer page for Ingram Micro C/O Valve Corporation: `https://www.importgenius.com/importers/ingram-micro-c-o-valve-corporation`
 - ImportInfo manual/corroborating Tech-Front supplier page: `https://www.importinfo.com/tech-front-chongqing-computer-co`
 - ImportInfo manual/corroborating Valve Corporation page: `https://www.importinfo.com/valve-corporation`
 - NBD Valve Corporation public company page: `https://en.nbd.ltd/trader/info/NBDD3Y527621220`

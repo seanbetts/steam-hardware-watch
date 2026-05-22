@@ -287,11 +287,12 @@ Run customs checks every normal watch run because ImportInfo is quick and high-s
 Primary automated customs source:
 
 - ImportInfo search pages for `CEVA C/O VALVE CORPORATION`, `INGRAM MICRO C/O VALVE CORPORATION`, `TECH-FRONT GAME CONSOLE VALVE`, and `VALVE CORPORATION GAME CONSOLE`
+- ImportGenius public importer page for `INGRAM MICRO C/O VALVE CORPORATION`
 
 Corroborating/manual sources:
 
 - NBD Valve and Ingram/Valve trader pages
-- ImportGenius public previews for CEVA/Valve, Ingram/Valve, and Tech-Front
+- ImportGenius public previews for CEVA/Valve and Tech-Front when not covered by the automated importer page
 
 Do not use HMRC UK Trade Info for launch monitoring. It is lagged monthly trader/commodity presence, not shipment-level evidence.
 

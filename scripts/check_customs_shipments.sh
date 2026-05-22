@@ -31,6 +31,16 @@ looks_like_importinfo_shipment_table() {
     return 0
 }
 
+looks_like_importgenius_shipment_page() {
+    path=$1
+    for marker in "Bill of Lading" "GAME CONSOLE" "VALVE CORPORATION"; do
+        if ! grep -qi "$marker" "$path"; then
+            return 1
+        fi
+    done
+    return 0
+}
+
 fetch_importinfo() {
     slug=$1
     query=$2
@@ -62,6 +72,37 @@ fetch_importinfo() {
     return 1
 }
 
+fetch_importgenius() {
+    slug=$1
+    query=$2
+    url=$3
+    tmp=$OUT_DIR/$slug.html.tmp
+    out=$OUT_DIR/$slug.html
+
+    if curl \
+        -A "$IMPORTINFO_USER_AGENT" \
+        -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
+        -H "Accept-Language: en-US,en;q=0.9" \
+        --retry 2 \
+        --retry-delay 2 \
+        --max-time 45 \
+        -fsSL "$url" > "$tmp" 2>/dev/null
+    then
+        if ! looks_like_importgenius_shipment_page "$tmp"; then
+            rm -f "$tmp" "$out"
+            printf 'unexpected or blocked content from %s\n' "$url" >> "$ERROR_FILE"
+            return 0
+        fi
+        mv "$tmp" "$out"
+        printf '%s\t%s\t%s\n' "$query" "$url" "$out" >> "$MANIFEST"
+        return 0
+    fi
+
+    rm -f "$tmp" "$out"
+    printf 'failed to fetch %s\n' "$url" >> "$ERROR_FILE"
+    return 1
+}
+
 fetch_importinfo \
     "importinfo-ceva-valve" \
     "ceva-valve" \
@@ -78,6 +119,10 @@ fetch_importinfo \
     "importinfo-valve-corporation" \
     "valve-corporation-game-console" \
     "https://www.importinfo.com/search?s=VALVE%20CORPORATION%20GAME%20CONSOLE" || true
+fetch_importgenius \
+    "importgenius-ingram-valve" \
+    "importgenius-ingram-valve" \
+    "https://www.importgenius.com/importers/ingram-micro-c-o-valve-corporation" || true
 
 python3 "$SCRIPT_DIR/parse_importinfo_shipments.py" \
     --manifest "$MANIFEST" \

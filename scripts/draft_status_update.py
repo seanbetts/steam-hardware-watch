@@ -155,6 +155,8 @@ def build_draft(run_dir: Path):
     lines.extend(["", "#### Customs / Shipments"])
     if not customs_outputs_available:
         lines.append("- Customs shipment outputs were not generated or are unavailable for this run.")
+    elif customs_blocked and customs_lines:
+        lines.append("- Customs shipment rows were captured, but some source fetches failed or were blocked. See `customs-shipments-errors.txt`.")
     elif customs_blocked:
         lines.append("- Customs shipment fetches failed or were partially blocked in this run. See `customs-shipments-errors.txt`.")
     if customs_lines:

@@ -2,6 +2,7 @@
 import argparse
 import csv
 import html
+import re
 from dataclasses import dataclass
 from html.parser import HTMLParser
 from pathlib import Path
@@ -68,6 +69,7 @@ SOURCE_URLS = {
     "ingram-valve": "https://www.importinfo.com/search?s=INGRAM%20MICRO%20C%2FO%20VALVE%20CORPORATION",
     "tech-front-game-console": "https://www.importinfo.com/search?s=TECH-FRONT%20GAME%20CONSOLE%20VALVE",
     "valve-corporation-game-console": "https://www.importinfo.com/search?s=VALVE%20CORPORATION%20GAME%20CONSOLE",
+    "importgenius-ingram-valve": "https://www.importgenius.com/importers/ingram-micro-c-o-valve-corporation",
 }
 
 
@@ -127,11 +129,34 @@ class TableParser(HTMLParser):
             self._current_cell_parts.append(data)
 
 
+class TextParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("br", "p", "tr", "li", "h1", "h2", "h3", "section"):
+            self.parts.append("\n")
+
+    def handle_endtag(self, tag):
+        if tag in ("p", "tr", "li", "h1", "h2", "h3", "section"):
+            self.parts.append("\n")
+
+    def handle_data(self, data):
+        self.parts.append(data)
+
+    def text(self):
+        return html.unescape(" ".join("".join(self.parts).split()))
+
+
 def normalize_header(value):
     return FIELD_MAP.get(value.strip().lower(), "")
 
 
 def parse_rows(spec):
+    if spec.query.startswith("importgenius-"):
+        return parse_importgenius_rows(spec)
+
     parser = TableParser()
     parser.feed(spec.path.read_text(encoding="utf-8", errors="ignore"))
     rows = []
@@ -147,6 +172,46 @@ def parse_rows(spec):
         if is_relevant(record):
             rows.append(record)
     return rows
+
+
+def parse_importgenius_rows(spec):
+    parser = TextParser()
+    parser.feed(spec.path.read_text(encoding="utf-8", errors="ignore"))
+    text = parser.text()
+    pattern = re.compile(
+        r"(?:^|\s)(?P<rank>\d+)\s+"
+        r"(?P<bol>[A-Z0-9]+)\s+"
+        r"(?P<product>GAME\s+CONSOLE\s*\.?)\s+"
+        r"(?P<importer>(?:INGRAM\s+MICRO|CEVA)\s+C/O\s+VALVE\s+CORPORATION)\s+"
+        r"(?P<supplier>TECH-?FRONT\s+\(CHONGQING\)\s+COMPUTER\s+CO)\s+"
+        r"(?P<arrival>\d{4}-\d{2}-\d{2})\s+"
+        r"(?P<country>[A-Za-z ]+?)\s+"
+        r"(?P<weight>[\d,]+\s+Kgs)\s+"
+        r"(?P<quantity>\d+\s+PKG)",
+        re.IGNORECASE,
+    )
+    rows = []
+    for match in pattern.finditer(text):
+        record = {field: "" for field in OUTPUT_FIELDS}
+        record["source"] = "importgenius"
+        record["query"] = spec.query
+        record["house_bol"] = match.group("bol").upper()
+        record["arrival_date"] = match.group("arrival")
+        record["foreign_port"] = match.group("country").strip()
+        record["quantity"] = " ".join(match.group("quantity").split())
+        record["weight"] = " ".join(match.group("weight").split())
+        record["shipper"] = normalize_company(match.group("supplier"))
+        record["consignee"] = normalize_company(match.group("importer"))
+        record["notify_party"] = record["consignee"]
+        record["commodity"] = " ".join(match.group("product").upper().split())
+        record["source_url"] = spec.source_url
+        if is_relevant(record):
+            rows.append(record)
+    return rows
+
+
+def normalize_company(value):
+    return " ".join(value.upper().replace("TECH FRONT", "TECH-FRONT").split())
 
 
 def is_relevant(record):

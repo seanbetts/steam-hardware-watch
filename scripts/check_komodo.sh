@@ -74,7 +74,7 @@ fetch_json() {
   if [ "$allow_fallback" = "1" ] && [ "${KOMODO_PLAYWRIGHT_FALLBACK:-0}" = "1" ] && command -v playwright-cli >/dev/null 2>&1; then
     maybe_set_cdp_endpoint
     PLAYWRIGHT_CLI_BIN="$(command -v playwright-cli)"
-    PLAYWRIGHT_CORE_PATH="$(CDPATH= cd -- "$(dirname "$PLAYWRIGHT_CLI_BIN")/../lib/node_modules/@playwright/cli/node_modules/playwright-core" && pwd 2>/dev/null || true)"
+    PLAYWRIGHT_CORE_PATH="$(CDPATH= cd -- "$(dirname "$PLAYWRIGHT_CLI_BIN")/../lib/node_modules/@playwright/cli/node_modules/playwright-core" 2>/dev/null && pwd || true)"
     PLAYWRIGHT_CORE_PATH="$PLAYWRIGHT_CORE_PATH" node "$SCRIPT_DIR/fetch_with_playwright.js" "$url" "$tmp"
     if jq empty "$tmp" >/dev/null 2>&1; then
       mv "$tmp" "$OUT_DIR/$name.json"
@@ -99,12 +99,12 @@ if ! fetch_json "product-controller-jpy" "https://komodostation.com/wp-json/wp/v
   exit 0
 fi
 
-fetch_json "product-machine-jpy" "https://komodostation.com/wp-json/wp/v2/product/413772" 0 || true
-fetch_json "product-frame-jpy" "https://komodostation.com/wp-json/wp/v2/product/413776" 0 || true
+fetch_json "product-machine-jpy" "https://komodostation.com/wp-json/wp/v2/product/413772" || true
+fetch_json "product-frame-jpy" "https://komodostation.com/wp-json/wp/v2/product/413776" || true
 
 fetch_json "sections-controller-search" "https://komodostation.com/wp-json/wp/v2/sections?search=Steam%20Controller&per_page=100" || true
-fetch_json "sections-machine-search" "https://komodostation.com/wp-json/wp/v2/sections?search=Steam%20Machine&per_page=100" 0 || true
-fetch_json "sections-frame-search" "https://komodostation.com/wp-json/wp/v2/sections?search=Steam%20Frame&per_page=100" 0 || true
+fetch_json "sections-machine-search" "https://komodostation.com/wp-json/wp/v2/sections?search=Steam%20Machine&per_page=100" || true
+fetch_json "sections-frame-search" "https://komodostation.com/wp-json/wp/v2/sections?search=Steam%20Frame&per_page=100" || true
 
 fetch_json "media-controller-search" "https://komodostation.com/wp-json/wp/v2/media?search=Steam%20Controller&per_page=100" || true
 fetch_json "media-parent-product-controller" "https://komodostation.com/wp-json/wp/v2/media?parent=413763&per_page=100" || true

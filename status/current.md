@@ -1,54 +1,56 @@
 # Steam Hardware Watch Status
 
-Last updated: `2026-05-14`
+Last updated: `2026-05-22`
 
 ## Best Current Answer
 
 - `Price`: Steam Controller remains confirmed by official Valve store APIs at `$99.00` in the US. Steam Machine and Steam Frame still have no confirmed public price.
 - `Release date`: Steam Controller remains confirmed with release date `May 4, 2026` and package `1558609`. Steam Machine and Steam Frame still only expose broad `Coming soon` / `2026` timing.
-- `Same-time launch`: same-day availability for the full trio is ruled out. Steam Controller is public and purchasable; Machine and Frame still have no public package, package group, price, or exact availability. Steam Machine reservation package changenumbers have now moved twice: a multi-package cluster on `2026-05-12`, followed by another bump across all four watched Machine packages on `2026-05-14`. That is a stronger Controller-like backend-prep signal for Machine, but public Valve APIs still do not expose Machine purchase or reservation readiness.
+- `Same-time launch`: same-day availability for the full trio is ruled out. Steam Controller is public and purchasable; Machine and Frame still have no public package, package group, price, or exact availability. Steam Machine reservation package changenumbers have now moved twice: a multi-package cluster on `2026-05-12`, followed by another bump across all four watched Machine packages on `2026-05-14`. ImportGenius now shows continued `GAME CONSOLE` shipments to `INGRAM MICRO C/O VALVE CORPORATION` through `2026-05-18`; this is a stronger logistics corroboration signal, but public Valve APIs still do not expose Machine purchase or reservation readiness.
 
 ## Source Snapshot
 
 ### Komodo
 
-- Komodo was partially available on `2026-05-14` through the dedicated browser fallback.
+- Komodo was available again on `2026-05-22` through the dedicated browser fallback after the `2026-05-19` waiting-room block.
 - Product modified timestamps captured in this run:
-  - Controller: `2026-05-13T09:02:58`
-  - Machine: `n/a` in this run because the optional Machine product fetch failed
-  - Frame: `n/a` in this run because the optional Frame product fetch failed
-- Controller changed from `2026-05-12T09:15:51` to `2026-05-13T09:02:58`, but a direct JSON diff versus `2026-05-12` found only `modified` / `modified_gmt` changes. Treat this as timestamp-only until corroborated by visible content, media, store-state movement, or Steam metadata.
-- Machine and Frame Komodo product/section endpoints failed in this run. Any compare-report lines about Machine or Frame section removal are partial-fetch artifacts, not evidence that Valve removed sections.
+  - Controller: `2026-05-22T15:28:27`
+  - Machine: `2026-04-24T14:32:54`
+  - Frame: `2026-04-24T14:33:36`
+- Controller changed from `2026-05-15T15:50:21` to `2026-05-22T15:28:27`, but a direct JSON diff versus `2026-05-18` found only `modified` / `modified_gmt` changes. Treat this as timestamp-only until corroborated by visible content, media, store-state movement, or Steam metadata.
+- Machine and Frame remain unchanged from their April 24 product timestamps, and their visible Komodo section baseline is still the old wishlist section only.
 - Visual asset retrieval found `141` candidate assets, retrieved `136`, and left `5` blocked known Komodo URLs for manual retry.
 
 ### SteamKit / PICS
 
 - SteamKit/PICS is the primary direct Steam metadata source for watched app and package movement.
-- Current changenumbers from the `2026-05-14` run:
+- Current changenumbers from the `2026-05-22` run:
   - Controller app `4165870`: `35731145`
   - Frame app `4165890`: `35675573`
   - Machine app `4165910`: `35675573`
-  - Controller package `1558609`: `35745078`
-  - Machine package `1629446`: `35842876` (`35819604` on `2026-05-12`)
-  - Machine package `1629447`: `35842851` (`35819607` on `2026-05-12`)
-  - Machine package `1629458`: `35842860` (`35819602` on `2026-05-12`)
-  - Machine package `1629460`: `35842863` (`35819593` on `2026-05-12`)
+  - Controller package `1558609`: `35893035`
+  - Machine package `1629446`: `35842876`
+  - Machine package `1629447`: `35842851`
+  - Machine package `1629458`: `35842860`
+  - Machine package `1629460`: `35842863`
   - Frame packages `1629484`, `1629486`: `35672606`
-- The four watched Steam Machine package IDs received a follow-up SteamKit/PICS changenumber bump on `2026-05-14`. This is the strongest current signal of fresh Machine-specific backend work, especially because the two watched Steam Frame package IDs did not move.
+- No watched SteamKit/PICS changenumbers moved on `2026-05-22`.
+- The latest Controller package signal remains the `2026-05-17` private PICS change on package `1558609`, where `ignorereservationifstockavailable=1` was removed from the package `extended` fields. Public Valve `appdetails` / `packagedetails` still did not change.
+- The latest material Machine signal remains the `2026-05-14` follow-up bump across all four watched Steam Machine package IDs, especially because the two watched Steam Frame package IDs did not move.
 - Manual package-history context remains important: Steam Controller package `1558609` reportedly had a clustered change pattern plus one later follow-up change roughly two days before Valve's public purchase-timing update appeared. The Machine set now has both the initial multi-package cluster and the later follow-up bump. Treat this as a stronger imminent-preorder heuristic, not confirmation.
 - Machine and Frame apps/packages currently require private PICS metadata tokens, but changenumbers are visible and suitable for movement monitoring.
-- Raw snapshot: `/Users/sean/Coding/steam-hardware-watch/runs/2026-05-14/api/steamkit/pics-product-info.json`
-- Human-readable detail: `/Users/sean/Coding/steam-hardware-watch/runs/2026-05-14/reports/steamkit-pics-detail.md`
+- Raw snapshot: `/Users/sean/Coding/steam-hardware-watch/runs/2026-05-22/api/steamkit/pics-product-info.json`
+- Human-readable detail: `/Users/sean/Coding/steam-hardware-watch/runs/2026-05-22/reports/steamkit-pics-detail.md`
 
 ### SteamDB
 
-- Automated SteamDB access remained blocked on `2026-05-14`.
+- Automated SteamDB access remained blocked on `2026-05-22`.
 - The package report is still a structural baseline, not a content baseline: all watched SteamDB package rows are `missing_or_blocked`.
 - SteamDB remains useful as corroborating/human-readable metadata once a trusted browser session can pass the challenge, but SteamKit/PICS now covers primary package movement.
 
 ### SteamTracking / GameTracking
 
-- Fresh SteamTracking content still contains the known Triton/Ibex controller pairing surface:
+- Fresh SteamTracking content at commit `28f5287` (`2026-05-22T04:56:58Z`) still contains the known Triton/Ibex controller pairing surface:
   - `ibex_internal`
   - `ibex_external`
   - `PairDongleTritonConnected`
@@ -82,8 +84,13 @@ Last updated: `2026-05-14`
 
 ### Customs / Regulatory
 
-- ImportInfo automated customs fetches were blocked on `2026-05-14`.
-- The latest useful customs evidence remains the `2026-05-01` NBD / ImportGenius pass:
+- Customs status on `2026-05-22`: partial. ImportInfo automated fetches were blocked, but the ImportGenius importer page fetched and parsed successfully.
+- ImportGenius now lists `10` relevant `GAME CONSOLE` rows for `INGRAM MICRO C/O VALVE CORPORATION` from `2026-03-27` through `2026-05-18`.
+- Newer rows since the old `2026-04-23` baseline include:
+  - `SNHBSHACHI265020`, arrived `2026-05-18`, `42 PKG`, `14353 Kgs`.
+  - `SNHBSHACHI264140`, arrived `2026-05-18`, `42 PKG`, `14533 Kgs`.
+  - `SNHBSHACHI264031`, arrived `2026-05-08`, `42 PKG`, `12615 Kgs`.
+- The prior NBD / ImportGenius context also remains relevant:
   - `WIRELESS PC CONTROLLER` row dated `2026-04-04`.
   - `GAME CONSOLE` shipment arriving `2026-04-23` for `INGRAM MICRO C/O VALVE CORPORATION`.
 - Customs data remains corroborating evidence only, not price/date/product-identity proof.

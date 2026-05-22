@@ -96,6 +96,8 @@ def customs_status(reports: Path):
     report = reports / "customs-shipments.md"
     if not any(path.exists() for path in (key_lines, errors, report)):
         return "unavailable"
+    if count(key_lines) and count(errors):
+        return "partial"
     if count(errors):
         return "blocked"
     return "available"
