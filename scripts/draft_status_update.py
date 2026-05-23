@@ -50,6 +50,9 @@ def build_draft(run_dir: Path):
     steamdb_lines = first_n_nonempty(reports / "steamdb-key-lines.txt", 8)
     valve_lines = first_n_nonempty(reports / "valve-key-lines.txt", 8)
     tracking_lines = first_n_nonempty(reports / "steamtracking-pairing-focus.txt", 8)
+    client_manifest_lines = first_n_nonempty(
+        reports / "steamtracking-client-manifests-key-lines.txt", 8
+    )
     steamvr_lines = first_n_nonempty(reports / "steamvr-depots-key-lines.txt", 8)
     steamos_lines = first_n_nonempty(reports / "steamos-mirror-key-lines.txt", 8)
     customs_key_lines_path = reports / "customs-shipments-key-lines.txt"
@@ -127,6 +130,9 @@ def build_draft(run_dir: Path):
         lines.extend([f"- `{line}`" for line in tracking_lines])
     else:
         lines.append("- No focused SteamTracking report found.")
+    if client_manifest_lines:
+        lines.extend(["", "Steam client manifest focus:"])
+        lines.extend([f"- `{line}`" for line in client_manifest_lines])
 
     lines.extend(["", "#### SteamVR Depots"])
     if steamvr_blocked:

@@ -223,7 +223,20 @@ Look for:
 - pairing flow strings
 - device type names or codenames
 - reservation flow allowlists and package IDs
+- Steam client ARM64 beta/publicbeta manifest movement, especially `steam_client_beta_linuxarm64`
 - support or OOBE changes
+
+Client manifest focus:
+
+- Treat `steam_client_beta_linuxarm64` as a high-signal Steam Machine / Fremont watch target.
+- Track `steam_client_publicbeta_linuxarm64` beside it so beta-to-publicbeta movement is visible.
+- Watch ARM64 hardware/runtime blocks, especially:
+  - `bins_hardware_linuxarm64`
+  - `bins_linuxarm64`
+  - `steam_linuxarm64`
+  - `runtime_steamrt_linuxarm64`
+  - `bins_steamrt_linuxarm64`
+- Manifest movement is a readiness heuristic only. It does not confirm product identity, preorder timing, or launch readiness without SteamKit/PICS or Valve public API movement.
 
 Known reservation-package code baseline:
 

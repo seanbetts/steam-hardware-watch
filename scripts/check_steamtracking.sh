@@ -9,6 +9,7 @@ fi
 RUN_DIR="$1"
 TRACKING_DIR="${2:-/tmp/SteamTracking-master}"
 OUT_DIR="$RUN_DIR/reports"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 mkdir -p "$OUT_DIR"
 
 if [ ! -d "$TRACKING_DIR" ]; then
@@ -24,6 +25,11 @@ rg -n -i "ShouldTritonPairInOobe|PairDongleTriton|UnpairedTriton|ibex_internal|i
   "$TRACKING_DIR" \
   > "$OUT_DIR/steamtracking-pairing-focus.txt" || true
 
+python3 "$SCRIPT_DIR/parse_steamtracking_client_manifests.py" \
+  --run-dir "$RUN_DIR" \
+  --tracking-dir "$TRACKING_DIR"
+
 printf '%s\n' \
   "Saved SteamTracking grep output to $OUT_DIR/steamtracking-hits.txt" \
-  "Saved pairing-focused grep output to $OUT_DIR/steamtracking-pairing-focus.txt"
+  "Saved pairing-focused grep output to $OUT_DIR/steamtracking-pairing-focus.txt" \
+  "Saved client manifest report to $OUT_DIR/steamtracking-client-manifests.md"

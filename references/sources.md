@@ -130,6 +130,17 @@ High-yield files from the seeded baseline:
 - `Protobufs/steammessages_clientsettings.proto`
 - `steamcommunity.com/public/javascript/webui/friends.js`
 - `Strings/steamclient.txt`
+- `ClientManifest/steam_client_beta_linuxarm64`
+- `ClientManifest/steam_client_publicbeta_linuxarm64`
+- `ClientManifest/steamdeck_publicbeta`
+
+Steam client manifest blocks to watch:
+
+- `bins_hardware_linuxarm64`
+- `bins_linuxarm64`
+- `steam_linuxarm64`
+- `runtime_steamrt_linuxarm64`
+- `bins_steamrt_linuxarm64`
 
 Useful search terms:
 
