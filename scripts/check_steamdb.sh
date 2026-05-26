@@ -48,7 +48,7 @@ maybe_set_cdp_endpoint() {
 
 is_challenge_page() {
   path="$1"
-  rg -qi "Checking your browser|Just a moment|Cloudflare|cf-chl|cf-browser-verification" "$path"
+  rg -qi "Checking your browser|Just a moment|cf-chl|cf-browser-verification|challenge-platform|cdn-cgi/challenge-platform" "$path"
 }
 
 load_local_env

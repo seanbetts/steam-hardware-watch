@@ -71,10 +71,13 @@ fetch_json() {
 
   rm -f "$tmp"
 
-  if [ "$allow_fallback" = "1" ] && [ "${KOMODO_PLAYWRIGHT_FALLBACK:-0}" = "1" ] && command -v playwright-cli >/dev/null 2>&1; then
+  if [ "$allow_fallback" = "1" ] && [ "${KOMODO_PLAYWRIGHT_FALLBACK:-0}" = "1" ] && command -v node >/dev/null 2>&1; then
     maybe_set_cdp_endpoint
-    PLAYWRIGHT_CLI_BIN="$(command -v playwright-cli)"
-    PLAYWRIGHT_CORE_PATH="$(CDPATH= cd -- "$(dirname "$PLAYWRIGHT_CLI_BIN")/../lib/node_modules/@playwright/cli/node_modules/playwright-core" 2>/dev/null && pwd || true)"
+    PLAYWRIGHT_CORE_PATH="${PLAYWRIGHT_CORE_PATH:-}"
+    if command -v playwright-cli >/dev/null 2>&1; then
+      PLAYWRIGHT_CLI_BIN="$(command -v playwright-cli)"
+      PLAYWRIGHT_CORE_PATH="$(CDPATH= cd -- "$(dirname "$PLAYWRIGHT_CLI_BIN")/../lib/node_modules/@playwright/cli/node_modules/playwright-core" 2>/dev/null && pwd || true)"
+    fi
     PLAYWRIGHT_CORE_PATH="$PLAYWRIGHT_CORE_PATH" node "$SCRIPT_DIR/fetch_with_playwright.js" "$url" "$tmp"
     if jq empty "$tmp" >/dev/null 2>&1; then
       mv "$tmp" "$OUT_DIR/$name.json"
