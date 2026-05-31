@@ -22,6 +22,12 @@ FILTER_TERMS = (
     "xr",
     "vr",
     "dongle",
+    "guidedtour",
+    "welcome",
+    "tour",
+    "oobe",
+    "sdcard",
+    "microsd",
 )
 REJECT_TERMS = (
     "application_config",
@@ -153,6 +159,7 @@ def build(run_dir: Path):
     notable.extend([f"- SteamKit/PICS: `{line}`" for line in filtered_first(reports / "steamkit-pics-key-lines.txt", 8)])
     notable.extend([f"- SteamDB: `{line}`" for line in filtered_first(reports / "steamdb-key-lines.txt", 5)])
     notable.extend([f"- SteamTracking: `{line}`" for line in filtered_first(reports / "steamtracking-pairing-focus.txt", 5)])
+    notable.extend([f"- SteamTracking hardware: `{line}`" for line in filtered_first(reports / "steamtracking-hardware-signals-key-lines.txt", 8)])
     notable.extend([f"- Steam client manifests: `{line}`" for line in filtered_first(reports / "steamtracking-client-manifests-key-lines.txt", 8)])
     notable.extend([f"- SteamVR depots: `{line}`" for line in filtered_first(reports / "steamvr-depots-key-lines.txt", 5)])
     notable.extend([f"- SteamOS mirror: `{line}`" for line in filtered_first(reports / "steamos-mirror-key-lines.txt", 5)])

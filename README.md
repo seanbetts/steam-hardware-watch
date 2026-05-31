@@ -91,11 +91,13 @@ Optional:
 chmod +x scripts/*.sh
 ```
 
-3. Ensure `SteamTracking` is available locally, for example at:
+3. Ensure `SteamTracking` is available locally as a git checkout, for example at:
 
 ```text
 /tmp/SteamTracking-master
 ```
+
+`scripts/check_steamtracking.sh` fast-forwards this checkout before scanning and records the before/after commit in each run.
 
 4. Run a watch pass:
 

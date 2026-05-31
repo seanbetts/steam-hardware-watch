@@ -216,15 +216,24 @@ The helper loads `.local/steamdb-env.sh` automatically and reuses the live brows
 
 ### 4. SteamTracking / GameTracking
 
+Use [scripts/check_steamtracking.sh](scripts/check_steamtracking.sh). When the tracking directory is a git checkout, the helper updates it with a fast-forward pull before scanning, records before/after commit metadata in `steamtracking-source.txt`, and fails loudly if the checkout is invalid or missing core extracted content.
+
 Look for:
 
 - onboarding text
+- guided-tour and welcome-tour strings, especially `GuidedTour_SteamMachine_*` and `GuidedTour_SteamFrame_*`
 - firmware update strings
 - pairing flow strings
 - device type names or codenames
 - reservation flow allowlists and package IDs
 - Steam client ARM64 beta/publicbeta manifest movement, especially `steam_client_beta_linuxarm64`
 - support or OOBE changes
+
+Hardware backend signal focus:
+
+- Review `steamtracking-hardware-signals-key-lines.txt` every run before dismissing SteamTracking as unchanged.
+- Treat setup-tour/OOBE additions as launch-readiness signals when they name Machine, Frame, SteamOS, codenames, or watched package IDs.
+- Compare this report between runs; it is designed to catch semantic client/backend additions that are not visible from manifest hashes alone.
 
 Client manifest focus:
 
