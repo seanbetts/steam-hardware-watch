@@ -42,6 +42,25 @@ SIGNAL_RE = re.compile(
     re.IGNORECASE,
 )
 
+FRAME_RE = re.compile(r"Steam\s*Frame|SteamFrame|steamframe|FrameVerified|FrameGames", re.IGNORECASE)
+
+FRAME_PRIORITY_RE = re.compile(
+    r"WelcomeToSteamFrame|GuidedTour_SteamFrame|SteamFrameWirelessAdapterDialog|"
+    r"controller_steamframe_pair|Settings_RemotePlay_WifiAPSection|"
+    r"Settings_Internet_Limit_Connection_Lower_Bands|LibraryTab_FrameVerified|"
+    r"steamFrameVerifiedApps|FrameGames|skip_steamframe_pairing_dialog|"
+    r"k_EAppTestType_SteamFrameCompatibilityReview",
+    re.IGNORECASE,
+)
+
+MACHINE_RE = re.compile(r"Steam\s*Machine|SteamMachine|steammachine", re.IGNORECASE)
+
+MACHINE_PRIORITY_RE = re.compile(
+    r"GuidedTour_SteamMachine|WelcomeToSteamMachine|GuidedTour_SDCard_Title_SteamMachine|"
+    r"SteamMachine_TestResult|SteamMachineVerified|SteamMachineCompatibility",
+    re.IGNORECASE,
+)
+
 
 def iter_files(tracking_dir: Path):
     for root in SEARCH_ROOTS:
@@ -119,6 +138,95 @@ def write_key_lines(rows, path: Path):
     path.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
 
 
+def frame_category(row):
+    text = row["text"]
+    if not (FRAME_RE.search(text) or FRAME_RE.search(row["path"])):
+        return ""
+    if not FRAME_PRIORITY_RE.search(text):
+        return ""
+    if re.search(r"WelcomeToSteamFrame|GuidedTour_SteamFrame", text, re.IGNORECASE):
+        return "frame-setup"
+    if re.search(
+        r"SteamFrameWirelessAdapterDialog|controller_steamframe_pair|"
+        r"Settings_RemotePlay_WifiAPSection|Settings_Internet_Limit_Connection_Lower_Bands|"
+        r"skip_steamframe_pairing_dialog",
+        text,
+        re.IGNORECASE,
+    ):
+        return "frame-pairing"
+    if re.search(
+        r"LibraryTab_FrameVerified|steamFrameVerifiedApps|FrameGames|"
+        r"k_EAppTestType_SteamFrameCompatibilityReview",
+        text,
+        re.IGNORECASE,
+    ):
+        return "frame-compatibility"
+    return "frame"
+
+
+def write_frame_key_lines(rows, path: Path):
+    priority = {
+        "frame-setup": 0,
+        "frame-pairing": 1,
+        "frame-compatibility": 2,
+        "frame": 3,
+    }
+    lines = []
+    seen = set()
+    def sort_key(row):
+        return (priority.get(frame_category(row), 99), row["path"], int(row["line"]), row["text"])
+
+    for row in sorted(rows, key=sort_key):
+        category = frame_category(row)
+        if not category:
+            continue
+        line = f"{category}\t{row['path']}:{row['line']}\t{row['text']}"
+        if line in seen:
+            continue
+        seen.add(line)
+        lines.append(line)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+
+
+def machine_category(row):
+    text = row["text"]
+    if not (MACHINE_RE.search(text) or MACHINE_RE.search(row["path"])):
+        return ""
+    if not MACHINE_PRIORITY_RE.search(text):
+        return ""
+    if re.search(r"GuidedTour_SteamMachine|WelcomeToSteamMachine|GuidedTour_SDCard_Title_SteamMachine", text, re.IGNORECASE):
+        return "machine-setup"
+    if re.search(r"SteamMachine_TestResult|SteamMachineVerified|SteamMachineCompatibility", text, re.IGNORECASE):
+        return "machine-compatibility"
+    return "machine"
+
+
+def write_machine_key_lines(rows, path: Path):
+    priority = {
+        "machine-setup": 0,
+        "machine-compatibility": 1,
+        "machine": 2,
+    }
+    lines = []
+    seen = set()
+
+    def sort_key(row):
+        return (priority.get(machine_category(row), 99), row["path"], int(row["line"]), row["text"])
+
+    for row in sorted(rows, key=sort_key):
+        category = machine_category(row)
+        if not category:
+            continue
+        line = f"{category}\t{row['path']}:{row['line']}\t{row['text']}"
+        if line in seen:
+            continue
+        seen.add(line)
+        lines.append(line)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+
+
 def write_markdown(rows, path: Path):
     lines = [
         "# SteamTracking Hardware Signals",
@@ -148,6 +256,8 @@ def main():
     rows.sort(key=lambda row: (row["category"], row["path"], int(row["line"]), row["text"]))
     write_tsv(rows, reports / "steamtracking-hardware-signals.tsv")
     write_key_lines(rows, reports / "steamtracking-hardware-signals-key-lines.txt")
+    write_frame_key_lines(rows, reports / "steamtracking-frame-signals-key-lines.txt")
+    write_machine_key_lines(rows, reports / "steamtracking-machine-signals-key-lines.txt")
     write_markdown(rows, reports / "steamtracking-hardware-signals.md")
 
 

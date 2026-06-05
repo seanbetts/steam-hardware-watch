@@ -125,6 +125,8 @@ def build_summary(prev_dir: Path, curr_dir: Path):
     deltas.extend(compare_text_lines(prev_dir, curr_dir, "SteamKit/PICS", "steamkit-pics-key-lines.txt"))
     deltas.extend(compare_text_lines(prev_dir, curr_dir, "SteamDB", "steamdb-key-lines.txt"))
     deltas.extend(compare_text_lines(prev_dir, curr_dir, "SteamTracking source", "steamtracking-source.txt"))
+    deltas.extend(compare_text_lines(prev_dir, curr_dir, "SteamTracking Frame signals", "steamtracking-frame-signals-key-lines.txt"))
+    deltas.extend(compare_text_lines(prev_dir, curr_dir, "SteamTracking Machine signals", "steamtracking-machine-signals-key-lines.txt"))
     deltas.extend(compare_text_lines(prev_dir, curr_dir, "SteamTracking hardware signals", "steamtracking-hardware-signals-key-lines.txt"))
     deltas.extend(compare_text_lines(prev_dir, curr_dir, "Steam client manifests", "steamtracking-client-manifests-key-lines.txt"))
     deltas.extend(compare_text_lines(prev_dir, curr_dir, "SteamVR depots", "steamvr-depots-key-lines.txt"))

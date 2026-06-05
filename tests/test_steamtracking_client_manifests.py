@@ -254,6 +254,151 @@ class SteamTrackingClientManifestTests(unittest.TestCase):
             self.assertIn("GuidedTour_SteamMachine_Welcome_Title", key_lines)
             self.assertIn("GuidedTour_SDCard_Title_SteamMachine", key_lines)
 
+    def test_hardware_signal_report_writes_prioritized_steam_frame_highlights(self):
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            tracking = tmp_path / "tracking"
+            localization = tracking / "ClientExtracted" / "steamui" / "localization"
+            webui = tracking / "ProtobufsWebui"
+            enums = tracking / "Protobufs"
+            localization.mkdir(parents=True)
+            webui.mkdir(parents=True)
+            enums.mkdir(parents=True)
+            (tracking / "ClientExtracted" / "ThirdPartyLegalNotices-Chromium.html").parent.mkdir(parents=True, exist_ok=True)
+            (tracking / "ClientExtracted" / "ThirdPartyLegalNotices-Chromium.html").write_text(
+                "reserves the exclusive right to collect such royalties for any\n",
+                encoding="utf-8",
+            )
+            (localization / "steamui_english.json").write_text(
+                textwrap.dedent(
+                    """
+                    {
+                      "controller_steamframe_pair": "Steam Frame Controllers",
+                      "Settings_RemotePlay_WifiAPSection": "Wireless Streaming Adapter (Steam Frame)",
+                      "LibraryTab_FrameVerified": "Verified on Steam Frame",
+                      "SteamFrameWirelessAdapterDialog_Header": "Pair Steam Frame Wireless Adapter",
+                      "SteamFrameWirelessAdapterDialog_Description": "Pair to a Steam Frame for high performance streaming."
+                    }
+                    """
+                ).strip()
+                + "\n",
+                encoding="utf-8",
+            )
+            (tracking / "ClientExtracted" / "steamui" / "chunk~frame.js").write_text(
+                '(WelcomeToSteamFrame = 1); steamFrameVerifiedApps: f; strName: "SteamFrameWirelessAdapterDialog";\n',
+                encoding="utf-8",
+            )
+            (webui / "common.proto").write_text(
+                "optional bool skip_steamframe_pairing_dialog = 27010;\n",
+                encoding="utf-8",
+            )
+            (enums / "enums.proto").write_text(
+                "k_EAppTestType_SteamFrameCompatibilityReview = 7;\n",
+                encoding="utf-8",
+            )
+            run_dir = tmp_path / "runs" / "2026-06-05"
+
+            result = subprocess.run(
+                [
+                    "python3",
+                    str(ROOT / "scripts" / "parse_steamtracking_hardware_signals.py"),
+                    "--run-dir",
+                    str(run_dir),
+                    "--tracking-dir",
+                    str(tracking),
+                ],
+                cwd=ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+            self.assertEqual("", result.stderr)
+            self.assertEqual(0, result.returncode)
+            highlights = (run_dir / "reports" / "steamtracking-frame-signals-key-lines.txt").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("WelcomeToSteamFrame", highlights)
+            self.assertIn("steamFrameVerifiedApps", highlights)
+            self.assertIn("SteamFrameWirelessAdapterDialog_Header", highlights)
+            self.assertIn("controller_steamframe_pair", highlights)
+            self.assertIn("Settings_RemotePlay_WifiAPSection", highlights)
+            self.assertIn("LibraryTab_FrameVerified", highlights)
+            self.assertIn("skip_steamframe_pairing_dialog", highlights)
+            self.assertIn("k_EAppTestType_SteamFrameCompatibilityReview", highlights)
+            self.assertNotIn("exclusive right", highlights)
+
+    def test_hardware_signal_report_writes_prioritized_steam_machine_highlights(self):
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            tracking = tmp_path / "tracking"
+            localization = tracking / "ClientExtracted" / "steamui" / "localization"
+            siteserver = tracking / "ClientExtracted" / "siteserverui" / "js"
+            localization.mkdir(parents=True)
+            siteserver.mkdir(parents=True)
+            (tracking / "ClientExtracted" / "ThirdPartyLegalNotices-Chromium.html").parent.mkdir(parents=True, exist_ok=True)
+            (tracking / "ClientExtracted" / "ThirdPartyLegalNotices-Chromium.html").write_text(
+                "reserves the exclusive right to collect such royalties for any\n",
+                encoding="utf-8",
+            )
+            (localization / "steamui_english.json").write_text(
+                textwrap.dedent(
+                    """
+                    {
+                      "GuidedTour_SteamMachine_Welcome_Title": "Welcome to Steam Machine",
+                      "GuidedTour_SteamMachine_SendOff_Description": "We hope you enjoy using Steam Machine.",
+                      "GuidedTour_SDCard_Title_SteamMachine": "Steam Machine is equipped with a microSD card slot."
+                    }
+                    """
+                ).strip()
+                + "\n",
+                encoding="utf-8",
+            )
+            (siteserver / "1136.json").write_text(
+                textwrap.dedent(
+                    """
+                    {
+                      "SteamMachine_TestResult_DeviceCompatibilityWarningsShown": "This game displays compatibility warnings when running on Steam Machine, but runs fine",
+                      "SteamMachineVerified_DescriptionHeader_Verified": "This game is fully functional on Steam Machine.",
+                      "SteamMachineCompatibility_Store_CompatSectionHeader_GamepadUI": "Steam Machine Compatibility"
+                    }
+                    """
+                ).strip()
+                + "\n",
+                encoding="utf-8",
+            )
+            run_dir = tmp_path / "runs" / "2026-06-05"
+
+            result = subprocess.run(
+                [
+                    "python3",
+                    str(ROOT / "scripts" / "parse_steamtracking_hardware_signals.py"),
+                    "--run-dir",
+                    str(run_dir),
+                    "--tracking-dir",
+                    str(tracking),
+                ],
+                cwd=ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+            self.assertEqual("", result.stderr)
+            self.assertEqual(0, result.returncode)
+            highlights = (run_dir / "reports" / "steamtracking-machine-signals-key-lines.txt").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("GuidedTour_SteamMachine_Welcome_Title", highlights)
+            self.assertIn("GuidedTour_SteamMachine_SendOff_Description", highlights)
+            self.assertIn("GuidedTour_SDCard_Title_SteamMachine", highlights)
+            self.assertIn("SteamMachine_TestResult_DeviceCompatibilityWarningsShown", highlights)
+            self.assertIn("SteamMachineVerified_DescriptionHeader_Verified", highlights)
+            self.assertIn("SteamMachineCompatibility_Store_CompatSectionHeader_GamepadUI", highlights)
+            self.assertNotIn("exclusive right", highlights)
+
     def test_compare_runs_includes_client_manifest_key_line_deltas(self):
         with TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -373,6 +518,97 @@ class SteamTrackingClientManifestTests(unittest.TestCase):
                 "GuidedTour_SteamMachine_Welcome_Title",
                 (reports / "status-draft.md").read_text(encoding="utf-8"),
             )
+
+    def test_status_draft_and_run_summary_prefer_steam_frame_highlights(self):
+        with TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "2026-06-05"
+            reports = run_dir / "reports"
+            reports.mkdir(parents=True)
+            (reports / "steamtracking-hardware-signals-key-lines.txt").write_text(
+                "commerce\tClientExtracted/ThirdPartyLegalNotices-Chromium.html:136305\t"
+                "reserves the exclusive right to collect such royalties for any\n",
+                encoding="utf-8",
+            )
+            (reports / "steamtracking-frame-signals-key-lines.txt").write_text(
+                "frame-setup\tClientExtracted/steamui/chunk~frame.js:1\tWelcomeToSteamFrame\n"
+                "frame-controller\tClientExtracted/steamui/localization/steamui_english.json:2\t"
+                '"controller_steamframe_pair": "Steam Frame Controllers",\n',
+                encoding="utf-8",
+            )
+
+            summary = subprocess.run(
+                ["python3", str(ROOT / "scripts" / "write_run_summary.py"), "--run-dir", str(run_dir)],
+                cwd=ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            draft = subprocess.run(
+                ["python3", str(ROOT / "scripts" / "draft_status_update.py"), "--run-dir", str(run_dir)],
+                cwd=ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+            self.assertEqual("", summary.stderr)
+            self.assertEqual(0, summary.returncode)
+            self.assertEqual("", draft.stderr)
+            self.assertEqual(0, draft.returncode)
+            run_summary = (reports / "run-summary.md").read_text(encoding="utf-8")
+            status_draft = (reports / "status-draft.md").read_text(encoding="utf-8")
+            self.assertIn("WelcomeToSteamFrame", run_summary)
+            self.assertIn("controller_steamframe_pair", run_summary)
+            self.assertIn("WelcomeToSteamFrame", status_draft)
+            self.assertIn("controller_steamframe_pair", status_draft)
+
+    def test_status_draft_and_run_summary_prefer_steam_machine_highlights(self):
+        with TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "2026-06-05"
+            reports = run_dir / "reports"
+            reports.mkdir(parents=True)
+            (reports / "steamtracking-hardware-signals-key-lines.txt").write_text(
+                "commerce\tClientExtracted/ThirdPartyLegalNotices-Chromium.html:136305\t"
+                "reserves the exclusive right to collect such royalties for any\n",
+                encoding="utf-8",
+            )
+            (reports / "steamtracking-machine-signals-key-lines.txt").write_text(
+                "machine-setup\tClientExtracted/steamui/localization/steamui_english.json:1\t"
+                '"GuidedTour_SteamMachine_Welcome_Title": "Welcome to Steam Machine",\n'
+                "machine-compatibility\tClientExtracted/siteserverui/js/1136.json:1\t"
+                '"SteamMachineCompatibility_Store_CompatSectionHeader_GamepadUI": "Steam Machine Compatibility",\n',
+                encoding="utf-8",
+            )
+
+            summary = subprocess.run(
+                ["python3", str(ROOT / "scripts" / "write_run_summary.py"), "--run-dir", str(run_dir)],
+                cwd=ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            draft = subprocess.run(
+                ["python3", str(ROOT / "scripts" / "draft_status_update.py"), "--run-dir", str(run_dir)],
+                cwd=ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+            self.assertEqual("", summary.stderr)
+            self.assertEqual(0, summary.returncode)
+            self.assertEqual("", draft.stderr)
+            self.assertEqual(0, draft.returncode)
+            run_summary = (reports / "run-summary.md").read_text(encoding="utf-8")
+            status_draft = (reports / "status-draft.md").read_text(encoding="utf-8")
+            self.assertIn("GuidedTour_SteamMachine_Welcome_Title", run_summary)
+            self.assertIn("SteamMachineCompatibility_Store_CompatSectionHeader_GamepadUI", run_summary)
+            self.assertIn("GuidedTour_SteamMachine_Welcome_Title", status_draft)
+            self.assertIn("SteamMachineCompatibility_Store_CompatSectionHeader_GamepadUI", status_draft)
 
 
 if __name__ == "__main__":

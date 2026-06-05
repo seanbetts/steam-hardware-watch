@@ -53,6 +53,12 @@ def build_draft(run_dir: Path):
     hardware_signal_lines = first_n_nonempty(
         reports / "steamtracking-hardware-signals-key-lines.txt", 8
     )
+    frame_signal_lines = first_n_nonempty(
+        reports / "steamtracking-frame-signals-key-lines.txt", 12
+    )
+    machine_signal_lines = first_n_nonempty(
+        reports / "steamtracking-machine-signals-key-lines.txt", 12
+    )
     client_manifest_lines = first_n_nonempty(
         reports / "steamtracking-client-manifests-key-lines.txt", 8
     )
@@ -133,6 +139,12 @@ def build_draft(run_dir: Path):
         lines.extend([f"- `{line}`" for line in tracking_lines])
     else:
         lines.append("- No focused SteamTracking report found.")
+    if frame_signal_lines:
+        lines.extend(["", "Steam Frame client signal focus:"])
+        lines.extend([f"- `{line}`" for line in frame_signal_lines])
+    if machine_signal_lines:
+        lines.extend(["", "Steam Machine client signal focus:"])
+        lines.extend([f"- `{line}`" for line in machine_signal_lines])
     if hardware_signal_lines:
         lines.extend(["", "Steam hardware backend signal focus:"])
         lines.extend([f"- `{line}`" for line in hardware_signal_lines])
