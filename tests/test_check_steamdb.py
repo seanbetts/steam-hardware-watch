@@ -83,6 +83,7 @@ class CheckSteamDBTests(unittest.TestCase):
                 "FAKE_NODE_MODE": node_mode,
                 "FAKE_LOG_DIR": str(log_dir),
                 "STEAMDB_PLAYWRIGHT_FALLBACK": "1",
+                "STEAMDB_AUTO_BOOTSTRAP": "0",
             }
         )
 
@@ -129,6 +130,86 @@ class CheckSteamDBTests(unittest.TestCase):
         self.assertIn("Coming soon", html)
         errors = (run_dir / "reports" / "steamdb-errors.txt").read_text(encoding="utf-8")
         self.assertEqual("", errors)
+
+    def test_playwright_fallback_bootstraps_dedicated_browser_when_cdp_is_stale(self):
+        tmp = TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        tmp_path = Path(tmp.name)
+        run_dir = tmp_path / "run"
+        fake_bin = tmp_path / "bin"
+        fake_bin.mkdir()
+        log_dir = tmp_path / "logs"
+        log_dir.mkdir()
+        env_file = tmp_path / "steamdb-env.sh"
+        bootstrap_log = tmp_path / "bootstrap.log"
+
+        env_file.write_text(
+            "\n".join(
+                [
+                    "export STEAMDB_PLAYWRIGHT_FALLBACK=1",
+                    f'export STEAMDB_PROFILE_DIR="{tmp_path / "profile"}"',
+                    'export STEAMDB_CDP_ENDPOINT="http://127.0.0.1:9"',
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        write_executable(
+            fake_bin / "curl",
+            """
+            #!/bin/sh
+            case "$*" in
+              *127.0.0.1:9/json/version*)
+                exit 7
+                ;;
+              *)
+                printf '%s\\n' '<html><title>Just a moment...</title><body>Checking your browser... Cloudflare</body></html>'
+                ;;
+            esac
+            """,
+        )
+        write_executable(
+            fake_bin / "node",
+            """
+            #!/bin/sh
+            printf '%s\\n' "$*" >> "$FAKE_LOG_DIR/node-args.log"
+            output=""
+            for arg in "$@"; do
+              output="$arg"
+            done
+            printf '%s\\n' '<html><title>Steam Controller AppID: 4165870</title><body>Coming soon prerelease</body></html>' > "$output"
+            """,
+        )
+        write_executable(
+            tmp_path / "bootstrap-steamdb.sh",
+            f"#!/bin/sh\nprintf '%s\\n' bootstrap >> '{bootstrap_log}'\ncat > '{env_file}' <<'EOF'\nexport STEAMDB_PLAYWRIGHT_FALLBACK=1\nexport STEAMDB_PROFILE_DIR=\"{tmp_path / 'profile'}\"\nexport STEAMDB_CDP_ENDPOINT=\"http://127.0.0.1:55685\"\nEOF\n",
+        )
+
+        env = os.environ.copy()
+        env.update(
+            {
+                "PATH": f"{fake_bin}:{env['PATH']}",
+                "FAKE_LOG_DIR": str(log_dir),
+                "STEAMDB_ENV_FILE": str(env_file),
+                "STEAMDB_BOOTSTRAP_CMD": str(tmp_path / "bootstrap-steamdb.sh"),
+            }
+        )
+
+        result = subprocess.run(
+            [str(ROOT / "scripts" / "check_steamdb.sh"), str(run_dir)],
+            cwd=ROOT,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual("", result.stderr)
+        self.assertEqual(0, result.returncode)
+        self.assertTrue(bootstrap_log.exists())
+        self.assertIn("bootstrap", bootstrap_log.read_text(encoding="utf-8"))
 
     def test_records_reservation_package_update_baseline(self):
         tmp = TemporaryDirectory()

@@ -26,8 +26,71 @@ load_local_env() {
   fi
 }
 
+configure_playwright_runtime() {
+  NODE_BIN="${NODE_BIN:-}"
+  if [ -z "$NODE_BIN" ]; then
+    NODE_BIN="$(command -v node 2>/dev/null || true)"
+  fi
+  bundled_node="$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
+  if [ -z "$NODE_BIN" ] && [ -x "$bundled_node" ]; then
+    NODE_BIN="$bundled_node"
+  fi
+  export NODE_BIN
+
+  if [ -z "${NODE_PATH:-}" ]; then
+    for node_modules in \
+      "$REPO_DIR/node_modules" \
+      "$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules"
+    do
+      if [ -d "$node_modules" ]; then
+        NODE_PATH="$node_modules"
+        export NODE_PATH
+        break
+      fi
+    done
+  fi
+}
+
+cdp_endpoint_alive() {
+  endpoint="${STEAMDB_CDP_ENDPOINT:-}"
+  if [ -z "$endpoint" ]; then
+    return 1
+  fi
+  curl --max-time 2 -fsS "$endpoint/json/version" >/dev/null 2>&1
+}
+
+STEAMDB_BOOTSTRAP_ATTEMPTED=0
+
+bootstrap_dedicated_browser() {
+  if [ "${STEAMDB_PLAYWRIGHT_FALLBACK:-0}" != "1" ] || [ "${STEAMDB_AUTO_BOOTSTRAP:-1}" = "0" ]; then
+    return 0
+  fi
+  if [ "$STEAMDB_BOOTSTRAP_ATTEMPTED" = "1" ]; then
+    return 0
+  fi
+
+  STEAMDB_BOOTSTRAP_ATTEMPTED=1
+  bootstrap_cmd="${STEAMDB_BOOTSTRAP_CMD:-$SCRIPT_DIR/bootstrap_steamdb.sh}"
+  if [ ! -x "$bootstrap_cmd" ]; then
+    printf '%s\n' "SteamDB bootstrap command not executable: $bootstrap_cmd" >> "$ERROR_FILE"
+    return 0
+  fi
+
+  if "$bootstrap_cmd" >/dev/null 2>>"$ERROR_FILE"; then
+    load_local_env
+  fi
+}
+
 maybe_set_cdp_endpoint() {
-  if [ -n "${STEAMDB_CDP_ENDPOINT:-}" ] || [ -z "${STEAMDB_PROFILE_DIR:-}" ]; then
+  if [ -n "${STEAMDB_CDP_ENDPOINT:-}" ]; then
+    if cdp_endpoint_alive; then
+      return 0
+    fi
+    unset STEAMDB_CDP_ENDPOINT
+  fi
+
+  if [ -z "${STEAMDB_PROFILE_DIR:-}" ]; then
+    bootstrap_dedicated_browser
     return 0
   fi
 
@@ -43,7 +106,13 @@ maybe_set_cdp_endpoint() {
   if [ -n "$port" ]; then
     STEAMDB_CDP_ENDPOINT="http://127.0.0.1:$port"
     export STEAMDB_CDP_ENDPOINT
+    if cdp_endpoint_alive; then
+      return 0
+    fi
+    unset STEAMDB_CDP_ENDPOINT
   fi
+
+  bootstrap_dedicated_browser
 }
 
 is_challenge_page() {
@@ -74,9 +143,11 @@ fetch_html() {
     fi
   fi
 
-  if [ "${STEAMDB_PLAYWRIGHT_FALLBACK:-0}" = "1" ] && command -v node >/dev/null 2>&1; then
+  if [ "${STEAMDB_PLAYWRIGHT_FALLBACK:-0}" = "1" ]; then
+    configure_playwright_runtime
     maybe_set_cdp_endpoint
-    if node "$SCRIPT_DIR/fetch_steamdb_with_playwright.js" "$url" "$tmp" >/dev/null 2>&1 \
+    if [ -n "${NODE_BIN:-}" ] \
+      && "$NODE_BIN" "$SCRIPT_DIR/fetch_steamdb_with_playwright.js" "$url" "$tmp" >/dev/null 2>&1 \
       && [ -s "$tmp" ] \
       && ! is_challenge_page "$tmp"; then
       mv "$tmp" "$out"

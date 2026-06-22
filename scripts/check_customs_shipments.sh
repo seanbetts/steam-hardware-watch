@@ -33,11 +33,14 @@ looks_like_importinfo_shipment_table() {
 
 looks_like_importgenius_shipment_page() {
     path=$1
-    for marker in "Bill of Lading" "GAME CONSOLE" "VALVE CORPORATION"; do
+    for marker in "Bill of Lading" "VALVE CORPORATION"; do
         if ! grep -qi "$marker" "$path"; then
             return 1
         fi
     done
+    if ! grep -Eqi "GAME CONSOLE|VIRTUAL REALITY|WIRELESS PC CONTROLLER|VR CONTROLLER|HEADSET" "$path"; then
+        return 1
+    fi
     return 0
 }
 
@@ -123,6 +126,18 @@ fetch_importgenius \
     "importgenius-ingram-valve" \
     "importgenius-ingram-valve" \
     "https://www.importgenius.com/importers/ingram-micro-c-o-valve-corporation" || true
+fetch_importgenius \
+    "importgenius-ceva-valve" \
+    "importgenius-ceva-valve" \
+    "https://www.importgenius.com/importers/ceva-c-o-valve-corporation" || true
+fetch_importgenius \
+    "importgenius-ceva-nl-valve" \
+    "importgenius-ceva-nl-valve" \
+    "https://www.importgenius.com/importers/ceva-nl-c-o-valve-corporation" || true
+fetch_importgenius \
+    "importgenius-valve-corp" \
+    "importgenius-valve-corp" \
+    "https://www.importgenius.com/importers/valve-corp" || true
 
 python3 "$SCRIPT_DIR/parse_importinfo_shipments.py" \
     --manifest "$MANIFEST" \

@@ -33,8 +33,71 @@ load_local_env() {
   fi
 }
 
+configure_playwright_runtime() {
+  NODE_BIN="${NODE_BIN:-}"
+  if [ -z "$NODE_BIN" ]; then
+    NODE_BIN="$(command -v node 2>/dev/null || true)"
+  fi
+  bundled_node="$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
+  if [ -z "$NODE_BIN" ] && [ -x "$bundled_node" ]; then
+    NODE_BIN="$bundled_node"
+  fi
+  export NODE_BIN
+
+  if [ -z "${NODE_PATH:-}" ]; then
+    for node_modules in \
+      "$REPO_DIR/node_modules" \
+      "$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules"
+    do
+      if [ -d "$node_modules" ]; then
+        NODE_PATH="$node_modules"
+        export NODE_PATH
+        break
+      fi
+    done
+  fi
+}
+
+cdp_endpoint_alive() {
+  endpoint="${PLAYWRIGHT_CDP_ENDPOINT:-}"
+  if [ -z "$endpoint" ]; then
+    return 1
+  fi
+  curl --max-time 2 -fsS "$endpoint/json/version" >/dev/null 2>&1
+}
+
+KOMODO_BOOTSTRAP_ATTEMPTED=0
+
+bootstrap_dedicated_browser() {
+  if [ "${KOMODO_PLAYWRIGHT_FALLBACK:-0}" != "1" ] || [ "${KOMODO_AUTO_BOOTSTRAP:-1}" = "0" ]; then
+    return 0
+  fi
+  if [ "$KOMODO_BOOTSTRAP_ATTEMPTED" = "1" ]; then
+    return 0
+  fi
+
+  KOMODO_BOOTSTRAP_ATTEMPTED=1
+  bootstrap_cmd="${KOMODO_BOOTSTRAP_CMD:-$SCRIPT_DIR/bootstrap_komodo.sh}"
+  if [ ! -x "$bootstrap_cmd" ]; then
+    printf '%s\n' "Komodo bootstrap command not executable: $bootstrap_cmd" >> "$ERROR_FILE"
+    return 0
+  fi
+
+  if "$bootstrap_cmd" >/dev/null 2>>"$ERROR_FILE"; then
+    load_local_env
+  fi
+}
+
 maybe_set_cdp_endpoint() {
-  if [ -n "${PLAYWRIGHT_CDP_ENDPOINT:-}" ] || [ -z "${PLAYWRIGHT_PROFILE_DIR:-}" ]; then
+  if [ -n "${PLAYWRIGHT_CDP_ENDPOINT:-}" ]; then
+    if cdp_endpoint_alive; then
+      return 0
+    fi
+    unset PLAYWRIGHT_CDP_ENDPOINT
+  fi
+
+  if [ -z "${PLAYWRIGHT_PROFILE_DIR:-}" ]; then
+    bootstrap_dedicated_browser
     return 0
   fi
 
@@ -50,7 +113,13 @@ maybe_set_cdp_endpoint() {
   if [ -n "$port" ]; then
     PLAYWRIGHT_CDP_ENDPOINT="http://127.0.0.1:$port"
     export PLAYWRIGHT_CDP_ENDPOINT
+    if cdp_endpoint_alive; then
+      return 0
+    fi
+    unset PLAYWRIGHT_CDP_ENDPOINT
   fi
+
+  bootstrap_dedicated_browser
 }
 
 load_local_env
@@ -71,14 +140,21 @@ fetch_json() {
 
   rm -f "$tmp"
 
-  if [ "$allow_fallback" = "1" ] && [ "${KOMODO_PLAYWRIGHT_FALLBACK:-0}" = "1" ] && command -v node >/dev/null 2>&1; then
+  if [ "$allow_fallback" = "1" ] && [ "${KOMODO_PLAYWRIGHT_FALLBACK:-0}" = "1" ]; then
+    configure_playwright_runtime
+    if [ -z "${NODE_BIN:-}" ]; then
+      printf '%s\n' "Playwright fallback unavailable: node executable not found" >> "$ERROR_FILE"
+      rm -f "$tmp"
+      printf '%s\n' "failed to fetch JSON from $url" >> "$ERROR_FILE"
+      return 1
+    fi
     maybe_set_cdp_endpoint
     PLAYWRIGHT_CORE_PATH="${PLAYWRIGHT_CORE_PATH:-}"
     if command -v playwright-cli >/dev/null 2>&1; then
       PLAYWRIGHT_CLI_BIN="$(command -v playwright-cli)"
       PLAYWRIGHT_CORE_PATH="$(CDPATH= cd -- "$(dirname "$PLAYWRIGHT_CLI_BIN")/../lib/node_modules/@playwright/cli/node_modules/playwright-core" 2>/dev/null && pwd || true)"
     fi
-    PLAYWRIGHT_CORE_PATH="$PLAYWRIGHT_CORE_PATH" node "$SCRIPT_DIR/fetch_with_playwright.js" "$url" "$tmp"
+    PLAYWRIGHT_CORE_PATH="$PLAYWRIGHT_CORE_PATH" "$NODE_BIN" "$SCRIPT_DIR/fetch_with_playwright.js" "$url" "$tmp"
     if jq empty "$tmp" >/dev/null 2>&1; then
       mv "$tmp" "$OUT_DIR/$name.json"
       return 0
@@ -124,8 +200,14 @@ do
   fi
 done
 
-for id in $(jq -r '.[].id' "$OUT_DIR/sections-controller-search.json" 2>/dev/null || true); do
-  fetch_json "media-parent-section-$id" "https://komodostation.com/wp-json/wp/v2/media?parent=$id&per_page=100" || true
+for section_report in \
+  sections-controller-search \
+  sections-machine-search \
+  sections-frame-search
+do
+  for id in $(jq -r '.[].id' "$OUT_DIR/$section_report.json" 2>/dev/null || true); do
+    fetch_json "media-parent-section-$id" "https://komodostation.com/wp-json/wp/v2/media?parent=$id&per_page=100" || true
+  done
 done
 
 {
@@ -153,8 +235,24 @@ jq -r '
   | @tsv
 ' "$OUT_DIR/media-controller-search.json" > "$REPORT_DIR/komodo-controller-media-interesting.tsv"
 
-: > "$REPORT_DIR/komodo-machine-media.tsv"
-: > "$REPORT_DIR/komodo-frame-media.tsv"
+write_section_media_report() {
+  sections_file="$1"
+  output_file="$2"
+  : > "$output_file"
+  for id in $(jq -r '.[].id' "$sections_file" 2>/dev/null || true); do
+    media_file="$OUT_DIR/media-parent-section-$id.json"
+    if [ -f "$media_file" ]; then
+      jq -r '
+        .[]?
+        | [.id,.date,.modified,.slug,.mime_type,.post,.source_url]
+        | @tsv
+      ' "$media_file" >> "$output_file"
+    fi
+  done
+}
+
+write_section_media_report "$OUT_DIR/sections-machine-search.json" "$REPORT_DIR/komodo-machine-media.tsv"
+write_section_media_report "$OUT_DIR/sections-frame-search.json" "$REPORT_DIR/komodo-frame-media.tsv"
 
 jq -r '
   .[]?

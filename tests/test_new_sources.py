@@ -176,6 +176,170 @@ class CheckSteamVRDepotsTests(unittest.TestCase):
         self.assertIn("Steam Frame", key_lines)
         self.assertIn("Deckard", key_lines)
 
+    def test_uses_steamdb_playwright_fallback_for_depot_page(self):
+        tmp = TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        tmp_path = Path(tmp.name)
+        run_dir = tmp_path / "run"
+        fake_bin = tmp_path / "bin"
+        fake_bin.mkdir()
+        log_dir = tmp_path / "logs"
+        log_dir.mkdir()
+
+        write_executable(
+            fake_bin / "curl",
+            """
+            #!/bin/sh
+            for arg in "$@"; do
+              url="$arg"
+            done
+            case "$url" in
+              *steamdb.info*)
+                printf '%s\\n' '<html><title>Just a moment...</title><body>Checking your browser Cloudflare</body></html>'
+                ;;
+              *ISteamNews*)
+                printf '%s\\n' '{"appnews":{"appid":250820,"newsitems":[]}}'
+                ;;
+              *)
+                echo "unexpected url: $url" >&2
+                exit 22
+                ;;
+            esac
+            """,
+        )
+        write_executable(
+            fake_bin / "node",
+            """
+            #!/bin/sh
+            printf '%s\\n' "$*" >> "$FAKE_LOG_DIR/node-args.log"
+            output=""
+            for arg in "$@"; do
+              output="$arg"
+            done
+            printf '%s\\n' '<html><body><table><tr><td>250823</td><td>Linux OpenVR Linux</td></tr><tr><td>Build ID</td><td>123</td></tr><tr><td>public</td><td>Steam Frame depot note</td></tr></table></body></html>' > "$output"
+            """,
+        )
+
+        env = os.environ.copy()
+        env.update(
+            {
+                "PATH": f"{fake_bin}:{env['PATH']}",
+                "FAKE_LOG_DIR": str(log_dir),
+                "STEAMDB_PLAYWRIGHT_FALLBACK": "1",
+                "STEAMDB_AUTO_BOOTSTRAP": "0",
+            }
+        )
+
+        result = subprocess.run(
+            [str(ROOT / "scripts" / "check_steamvr_depots.sh"), str(run_dir)],
+            cwd=ROOT,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual("", result.stderr)
+        self.assertEqual(0, result.returncode)
+        self.assertTrue((log_dir / "node-args.log").exists())
+        self.assertTrue((run_dir / "api" / "steamvr-depots" / "steamdb-depots.html").exists())
+        errors = (run_dir / "reports" / "steamvr-depots-errors.txt").read_text(
+            encoding="utf-8"
+        )
+        key_lines = (run_dir / "reports" / "steamvr-depots-key-lines.txt").read_text(
+            encoding="utf-8"
+        )
+        self.assertEqual("", errors)
+        self.assertIn("Steam Frame", key_lines)
+
+    def test_steamdb_playwright_fallback_bootstraps_when_cdp_is_stale(self):
+        tmp = TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        tmp_path = Path(tmp.name)
+        run_dir = tmp_path / "run"
+        fake_bin = tmp_path / "bin"
+        fake_bin.mkdir()
+        log_dir = tmp_path / "logs"
+        log_dir.mkdir()
+        env_file = tmp_path / "steamdb-env.sh"
+        bootstrap_log = tmp_path / "bootstrap.log"
+
+        env_file.write_text(
+            "\n".join(
+                [
+                    "export STEAMDB_PLAYWRIGHT_FALLBACK=1",
+                    f'export STEAMDB_PROFILE_DIR="{tmp_path / "profile"}"',
+                    'export STEAMDB_CDP_ENDPOINT="http://127.0.0.1:9"',
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        write_executable(
+            fake_bin / "curl",
+            """
+            #!/bin/sh
+            case "$*" in
+              *127.0.0.1:9/json/version*)
+                exit 7
+                ;;
+              *steamdb.info*)
+                printf '%s\\n' '<html><title>Just a moment...</title><body>Checking your browser Cloudflare</body></html>'
+                ;;
+              *ISteamNews*)
+                printf '%s\\n' '{"appnews":{"appid":250820,"newsitems":[]}}'
+                ;;
+              *)
+                echo "unexpected args: $*" >&2
+                exit 22
+                ;;
+            esac
+            """,
+        )
+        write_executable(
+            fake_bin / "node",
+            """
+            #!/bin/sh
+            printf '%s\\n' "$*" >> "$FAKE_LOG_DIR/node-args.log"
+            output=""
+            for arg in "$@"; do
+              output="$arg"
+            done
+            printf '%s\\n' '<html><body><table><tr><td>public</td><td>Steam Frame depot note</td></tr></table></body></html>' > "$output"
+            """,
+        )
+        write_executable(
+            tmp_path / "bootstrap-steamdb.sh",
+            f"#!/bin/sh\nprintf '%s\\n' bootstrap >> '{bootstrap_log}'\ncat > '{env_file}' <<'EOF'\nexport STEAMDB_PLAYWRIGHT_FALLBACK=1\nexport STEAMDB_PROFILE_DIR=\"{tmp_path / 'profile'}\"\nexport STEAMDB_CDP_ENDPOINT=\"http://127.0.0.1:55685\"\nEOF\n",
+        )
+
+        env = os.environ.copy()
+        env.update(
+            {
+                "PATH": f"{fake_bin}:{env['PATH']}",
+                "FAKE_LOG_DIR": str(log_dir),
+                "STEAMDB_ENV_FILE": str(env_file),
+                "STEAMDB_BOOTSTRAP_CMD": str(tmp_path / "bootstrap-steamdb.sh"),
+            }
+        )
+
+        result = subprocess.run(
+            [str(ROOT / "scripts" / "check_steamvr_depots.sh"), str(run_dir)],
+            cwd=ROOT,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual("", result.stderr)
+        self.assertEqual(0, result.returncode)
+        self.assertTrue(bootstrap_log.exists())
+        self.assertTrue((log_dir / "node-args.log").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

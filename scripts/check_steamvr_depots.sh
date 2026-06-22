@@ -9,6 +9,8 @@ fi
 RUN_DIR="$1"
 OUT_DIR="$RUN_DIR/api/steamvr-depots"
 REPORT_DIR="$RUN_DIR/reports"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
+REPO_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 mkdir -p "$OUT_DIR" "$REPORT_DIR"
 
 ERROR_FILE="$REPORT_DIR/steamvr-depots-errors.txt"
@@ -28,6 +30,101 @@ is_challenge_page() {
   rg -qi "Checking your browser|Just a moment|Cloudflare|cf-chl|cf-browser-verification" "$path"
 }
 
+load_steamdb_env() {
+  env_file="${STEAMDB_ENV_FILE:-$REPO_DIR/.local/steamdb-env.sh}"
+  if [ -f "$env_file" ]; then
+    # shellcheck disable=SC1090
+    . "$env_file"
+  fi
+}
+
+steamdb_cdp_endpoint_alive() {
+  endpoint="${STEAMDB_CDP_ENDPOINT:-}"
+  if [ -z "$endpoint" ]; then
+    return 1
+  fi
+  curl --max-time 2 -fsS "$endpoint/json/version" >/dev/null 2>&1
+}
+
+STEAMDB_BOOTSTRAP_ATTEMPTED=0
+
+bootstrap_steamdb_browser() {
+  if [ "${STEAMDB_PLAYWRIGHT_FALLBACK:-0}" != "1" ] || [ "${STEAMDB_AUTO_BOOTSTRAP:-1}" = "0" ]; then
+    return 0
+  fi
+  if [ "$STEAMDB_BOOTSTRAP_ATTEMPTED" = "1" ]; then
+    return 0
+  fi
+
+  STEAMDB_BOOTSTRAP_ATTEMPTED=1
+  bootstrap_cmd="${STEAMDB_BOOTSTRAP_CMD:-$SCRIPT_DIR/bootstrap_steamdb.sh}"
+  if [ ! -x "$bootstrap_cmd" ]; then
+    printf '%s\n' "SteamDB bootstrap command not executable: $bootstrap_cmd" >> "$ERROR_FILE"
+    return 0
+  fi
+
+  if "$bootstrap_cmd" >/dev/null 2>>"$ERROR_FILE"; then
+    load_steamdb_env
+  fi
+}
+
+ensure_steamdb_browser() {
+  if [ "${STEAMDB_PLAYWRIGHT_FALLBACK:-0}" != "1" ]; then
+    return 0
+  fi
+
+  if [ -n "${STEAMDB_CDP_ENDPOINT:-}" ]; then
+    if steamdb_cdp_endpoint_alive; then
+      return 0
+    fi
+    unset STEAMDB_CDP_ENDPOINT
+  fi
+
+  if [ -n "${STEAMDB_PROFILE_DIR:-}" ]; then
+    port="$(ps aux | awk -v profile="$STEAMDB_PROFILE_DIR" '
+      index($0, profile) && match($0, /--remote-debugging-port=([0-9]+)/) {
+        value = substr($0, RSTART, RLENGTH)
+        sub(/^--remote-debugging-port=/, "", value)
+        print value
+        exit
+      }
+    ' 2>/dev/null || true)"
+
+    if [ -n "$port" ]; then
+      STEAMDB_CDP_ENDPOINT="http://127.0.0.1:$port"
+      export STEAMDB_CDP_ENDPOINT
+      if steamdb_cdp_endpoint_alive; then
+        return 0
+      fi
+      unset STEAMDB_CDP_ENDPOINT
+    fi
+  fi
+
+  bootstrap_steamdb_browser
+}
+
+fetch_html_with_steamdb_playwright() {
+  url="$1"
+  output="$2"
+  tmp="$output.tmp.playwright"
+
+  if [ "${STEAMDB_PLAYWRIGHT_FALLBACK:-0}" != "1" ] || ! command -v node >/dev/null 2>&1; then
+    return 1
+  fi
+
+  ensure_steamdb_browser
+
+  if node "$SCRIPT_DIR/fetch_steamdb_with_playwright.js" "$url" "$tmp" >/dev/null 2>&1 \
+    && [ -s "$tmp" ] \
+    && ! is_challenge_page "$tmp"; then
+    mv "$tmp" "$output"
+    return 0
+  fi
+
+  rm -f "$tmp"
+  return 1
+}
+
 fetch_html() {
   name="$1"
   url="$2"
@@ -37,6 +134,11 @@ fetch_html() {
   if curl -A 'Mozilla/5.0' --retry 2 --retry-delay 2 --max-time 45 -fsSL "$url" > "$tmp" 2>/dev/null \
     && ! is_challenge_page "$tmp"; then
     mv "$tmp" "$out"
+    return 0
+  fi
+
+  rm -f "$tmp"
+  if fetch_html_with_steamdb_playwright "$url" "$out"; then
     return 0
   fi
 
@@ -56,6 +158,8 @@ fetch_json() {
     return 1
   fi
 }
+
+load_steamdb_env
 
 fetch_html "steamdb-depots.html" "https://steamdb.info/app/250820/depots/" || true
 fetch_json "steamvr-news.json" "https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=250820&count=40&maxlength=12000&format=json" || true

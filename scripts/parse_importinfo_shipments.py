@@ -56,6 +56,9 @@ OUTPUT_FIELDS = [
 PARTY_TERMS = ("VALVE", "CEVA", "INGRAM MICRO", "TECH-FRONT", "CHENG UEI")
 PRODUCT_TERMS = (
     "GAME CONSOLE",
+    "VIRTUAL REALITY",
+    "VIRTUAL REALITY DEVICES",
+    "WIRELESS PC CONTROLLER",
     "VR CONTROLLER",
     "CONTROLLER",
     "STEAM",
@@ -70,6 +73,9 @@ SOURCE_URLS = {
     "tech-front-game-console": "https://www.importinfo.com/search?s=TECH-FRONT%20GAME%20CONSOLE%20VALVE",
     "valve-corporation-game-console": "https://www.importinfo.com/search?s=VALVE%20CORPORATION%20GAME%20CONSOLE",
     "importgenius-ingram-valve": "https://www.importgenius.com/importers/ingram-micro-c-o-valve-corporation",
+    "importgenius-ceva-valve": "https://www.importgenius.com/importers/ceva-c-o-valve-corporation",
+    "importgenius-ceva-nl-valve": "https://www.importgenius.com/importers/ceva-nl-c-o-valve-corporation",
+    "importgenius-valve-corp": "https://www.importgenius.com/importers/valve-corp",
 }
 
 
@@ -135,11 +141,11 @@ class TextParser(HTMLParser):
         self.parts = []
 
     def handle_starttag(self, tag, attrs):
-        if tag in ("br", "p", "tr", "li", "h1", "h2", "h3", "section"):
+        if tag in ("br", "p", "tr", "li", "h1", "h2", "h3", "section", "div"):
             self.parts.append("\n")
 
     def handle_endtag(self, tag):
-        if tag in ("p", "tr", "li", "h1", "h2", "h3", "section"):
+        if tag in ("p", "tr", "li", "h1", "h2", "h3", "section", "div"):
             self.parts.append("\n")
 
     def handle_data(self, data):
@@ -147,6 +153,10 @@ class TextParser(HTMLParser):
 
     def text(self):
         return html.unescape(" ".join("".join(self.parts).split()))
+
+    def lines(self):
+        raw_text = html.unescape("".join(self.parts))
+        return [" ".join(line.split()) for line in raw_text.splitlines() if line.strip()]
 
 
 def normalize_header(value):
@@ -177,34 +187,83 @@ def parse_rows(spec):
 def parse_importgenius_rows(spec):
     parser = TextParser()
     parser.feed(spec.path.read_text(encoding="utf-8", errors="ignore"))
-    text = parser.text()
+    text_lines = parser.lines() or [parser.text()]
+    importer_pattern = (
+        r"(?:INGRAM\s+MICRO|CEVA(?:\s+NL)?)\s+C/O\s+VALVE\s+CORPORATION"
+        r"|VALVE\s+CORPORATION"
+    )
+    supplier_pattern = (
+        r"TECH-?FRONT\s+\(CHONGQING\)\s+COMPUTER\s+CO"
+        r"|CHENG\s+UEI\s+PRECISION\s+IND\.\s+CO\s+LTD"
+    )
     pattern = re.compile(
         r"(?:^|\s)(?P<rank>\d+)\s+"
         r"(?P<bol>[A-Z0-9]+)\s+"
-        r"(?P<product>GAME\s+CONSOLE\s*\.?)\s+"
-        r"(?P<importer>(?:INGRAM\s+MICRO|CEVA)\s+C/O\s+VALVE\s+CORPORATION)\s+"
-        r"(?P<supplier>TECH-?FRONT\s+\(CHONGQING\)\s+COMPUTER\s+CO)\s+"
+        r"(?P<product>[A-Z0-9][A-Z0-9 ./&()'-]+?)\s+"
+        r"(?P<importer>" + importer_pattern + r")\s+"
+        r"(?P<supplier>" + supplier_pattern + r")\s+"
         r"(?P<arrival>\d{4}-\d{2}-\d{2})\s+"
         r"(?P<country>[A-Za-z ]+?)\s+"
         r"(?P<weight>[\d,]+\s+Kgs)\s+"
         r"(?P<quantity>\d+\s+PKG)",
         re.IGNORECASE,
     )
-    rows = []
-    for match in pattern.finditer(text):
+    importer_re = re.compile(importer_pattern, re.IGNORECASE)
+    supplier_re = re.compile(supplier_pattern, re.IGNORECASE)
+    rank_re = re.compile(r"\d+")
+    bol_re = re.compile(r"[A-Z0-9]+")
+    date_re = re.compile(r"\d{4}-\d{2}-\d{2}")
+    country_re = re.compile(r"[A-Za-z ]+")
+    weight_re = re.compile(r"[\d,]+\s+Kgs", re.IGNORECASE)
+    quantity_re = re.compile(r"\d+\s+PKG", re.IGNORECASE)
+
+    def build_record(match):
         record = {field: "" for field in OUTPUT_FIELDS}
         record["source"] = "importgenius"
         record["query"] = spec.query
-        record["house_bol"] = match.group("bol").upper()
-        record["arrival_date"] = match.group("arrival")
-        record["foreign_port"] = match.group("country").strip()
-        record["quantity"] = " ".join(match.group("quantity").split())
-        record["weight"] = " ".join(match.group("weight").split())
-        record["shipper"] = normalize_company(match.group("supplier"))
-        record["consignee"] = normalize_company(match.group("importer"))
+        record["house_bol"] = match["bol"].upper()
+        record["arrival_date"] = match["arrival"]
+        record["foreign_port"] = match["country"].strip()
+        record["quantity"] = " ".join(match["quantity"].split())
+        record["weight"] = " ".join(match["weight"].split())
+        record["shipper"] = normalize_company(match["supplier"])
+        record["consignee"] = normalize_company(match["importer"])
         record["notify_party"] = record["consignee"]
-        record["commodity"] = " ".join(match.group("product").upper().split())
+        record["commodity"] = " ".join(match["product"].upper().split()).strip(" .")
         record["source_url"] = spec.source_url
+        return record
+
+    rows = []
+    for line in text_lines:
+        for match in pattern.finditer(line):
+            record = build_record(match.groupdict())
+            if is_relevant(record):
+                rows.append(record)
+    for index in range(0, max(0, len(text_lines) - 8)):
+        values = text_lines[index : index + 9]
+        if not (
+            rank_re.fullmatch(values[0])
+            and bol_re.fullmatch(values[1])
+            and importer_re.fullmatch(values[3])
+            and supplier_re.fullmatch(values[4])
+            and date_re.fullmatch(values[5])
+            and country_re.fullmatch(values[6])
+            and weight_re.fullmatch(values[7])
+            and quantity_re.fullmatch(values[8])
+        ):
+            continue
+        record = build_record(
+            {
+                "bol": values[1],
+                "product": values[2],
+                "importer": values[3],
+                "supplier": values[4],
+                "arrival": values[5],
+                "country": values[6],
+                "weight": values[7],
+                "quantity": values[8],
+            }
+        )
         if is_relevant(record):
             rows.append(record)
     return rows
@@ -350,7 +409,9 @@ def write_report(rows, output):
             "## Limitations",
             "",
             "Customs data is corroborating evidence, not a standalone confirmation. "
-            "GAME CONSOLE descriptions are medium confidence without other identifiers.",
+            "Product descriptions such as GAME CONSOLE, VIRTUAL REALITY DEVICES, "
+            "and WIRELESS PC CONTROLLER do not prove the final Valve retail SKU without "
+            "other identifiers.",
             "",
         ]
     )

@@ -6,13 +6,14 @@ function loadPlaywright() {
   const candidates = [];
   if (process.env.PLAYWRIGHT_CORE_PATH) candidates.push(process.env.PLAYWRIGHT_CORE_PATH);
   candidates.push("playwright-core");
+  candidates.push("playwright");
   for (const candidate of candidates) {
     try {
       return require(candidate);
     } catch (err) {
     }
   }
-  throw new Error("Unable to load playwright-core. Set PLAYWRIGHT_CORE_PATH or install playwright-core.");
+  throw new Error("Unable to load Playwright. Set PLAYWRIGHT_CORE_PATH, set NODE_PATH to a node_modules directory, or install playwright/playwright-core.");
 }
 
 function launchOptions(headless) {

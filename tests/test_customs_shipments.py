@@ -70,6 +70,86 @@ IMPORTGENIUS_HTML = textwrap.dedent(
 )
 
 
+IMPORTGENIUS_CEVA_VR_HTML = textwrap.dedent(
+    """
+    <html>
+      <body>
+        <h1>CEVA C/o Valve Corporation</h1>
+        <p>Updated: 2026-06-10</p>
+        <section>
+          <h2>Importer Shipments</h2>
+          <p>#  Bill of Lading  Product  Importer  Supplier  Arrival Date  Country of Origin  Gross Weight KGS  Quantity</p>
+          <p>1  SNHBSHACHI265173  VIRTUAL REALITY DEVICES  CEVA C/O VALVE CORPORATION  TECH-FRONT (CHONGQING) COMPUTER CO  2026-06-10  China  6374 Kgs  42 PKG</p>
+          <p>2  SNHBSHACHI265174  VIRTUAL REALITY DEVICES  CEVA C/O VALVE CORPORATION  TECH-FRONT (CHONGQING) COMPUTER CO  2026-06-10  China  6372 Kgs  42 PKG</p>
+        </section>
+      </body>
+    </html>
+    """
+)
+
+
+IMPORTGENIUS_VERTICAL_CEVA_VR_HTML = textwrap.dedent(
+    """
+    <html>
+      <body>
+        <h1>CEVA C/o Valve Corporation</h1>
+        <section>
+          <h2>Importer Shipments</h2>
+          <div>#</div><div>Bill of Lading</div><div>Product</div><div>Importer</div>
+          <div>Supplier</div><div>Arrival Date</div><div>Country of Origin</div>
+          <div>Gross Weight KGS</div><div>Quantity</div>
+          <div>1</div>
+          <div>SNHBSHACHI265173</div>
+          <div>VIRTUAL REALITY DEVICES</div>
+          <div>CEVA C/O VALVE CORPORATION</div>
+          <div>TECH-FRONT (CHONGQING) COMPUTER CO</div>
+          <div>2026-06-10</div>
+          <div>China</div>
+          <div>6374 Kgs</div>
+          <div>42 PKG</div>
+        </section>
+      </body>
+    </html>
+    """
+)
+
+
+IMPORTGENIUS_CEVA_NL_VR_HTML = textwrap.dedent(
+    """
+    <html>
+      <body>
+        <h1>CEVA NL C/o Valve Corporation</h1>
+        <p>Updated: 2026-06-10</p>
+        <section>
+          <h2>Importer Shipments</h2>
+          <p>#  Bill of Lading  Product  Importer  Supplier  Arrival Date  Country of Origin  Gross Weight KGS  Quantity</p>
+          <p>1  SNHBSHALAX265177  VIRTUAL REALITY DEVICES  CEVA NL C/O VALVE CORPORATION  TECH-FRONT (CHONGQING) COMPUTER CO  2026-06-10  China  6400 Kgs  42 PKG</p>
+        </section>
+      </body>
+    </html>
+    """
+)
+
+
+IMPORTGENIUS_VALVE_CONTROLLER_HTML = textwrap.dedent(
+    """
+    <html>
+      <body>
+        <h1>Valve Corporation</h1>
+        <p>Updated: 2026-06-10</p>
+        <section>
+          <h2>Importer Shipments</h2>
+          <p>#  Bill of Lading  Product  Importer  Supplier  Arrival Date  Country of Origin  Gross Weight KGS  Quantity</p>
+          <p>1  SNHBHKGLBG266011  WIRELESS PC CONTROLLER  VALVE CORPORATION  CHENG UEI PRECISION IND. CO LTD  2026-06-10  Hong Kong  9727 Kgs  30 PKG</p>
+          <p>4  DSVFMIL0341656  PNEUMATIC ACTUATOR VALVE 48 LLC L.P.S. SRL PER CONTO BIFFI ITALIA S  2026-05-16  Italy  1830 Kgs  1 CAS</p>
+          <p>5  SNHBHKGLBG265013  WIRELESS PC CONTROLLER  VALVE CORPORATION  CHENG UEI PRECISION IND. CO LTD  2026-05-12  Hong Kong  12970 Kgs  40 PKG</p>
+        </section>
+      </body>
+    </html>
+    """
+)
+
+
 def run_parser(args, reports):
     return subprocess.run(
         [
@@ -289,6 +369,74 @@ class CustomsShipmentParserTests(unittest.TestCase):
             self.assertIn("SNHBSHACHI265020", key_lines)
             self.assertIn("2026-05-18", key_lines)
 
+    def test_extracts_importgenius_virtual_reality_device_rows(self):
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            ceva = tmp_path / "importgenius-ceva.html"
+            ceva_nl = tmp_path / "importgenius-ceva-nl.html"
+            ceva.write_text(IMPORTGENIUS_CEVA_VR_HTML, encoding="utf-8")
+            ceva_nl.write_text(IMPORTGENIUS_CEVA_NL_VR_HTML, encoding="utf-8")
+            reports = tmp_path / "reports"
+
+            result = run_parser(
+                [
+                    "--input",
+                    f"importgenius-ceva-valve={ceva}",
+                    "--input",
+                    f"importgenius-ceva-nl-valve={ceva_nl}",
+                ],
+                reports,
+            )
+
+            self.assertEqual("", result.stderr)
+            self.assertEqual(0, result.returncode)
+            rows = read_rows(reports)
+            self.assertEqual(
+                ["SNHBSHACHI265173", "SNHBSHACHI265174", "SNHBSHALAX265177"],
+                [row["house_bol"] for row in rows],
+            )
+            self.assertTrue(
+                all(row["commodity"] == "VIRTUAL REALITY DEVICES" for row in rows)
+            )
+            self.assertEqual("CEVA C/O VALVE CORPORATION", rows[0]["consignee"])
+            self.assertEqual("CEVA NL C/O VALVE CORPORATION", rows[2]["consignee"])
+
+    def test_extracts_importgenius_vertical_table_rows(self):
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            html = tmp_path / "importgenius-ceva-vertical.html"
+            html.write_text(IMPORTGENIUS_VERTICAL_CEVA_VR_HTML, encoding="utf-8")
+            reports = tmp_path / "reports"
+
+            result = run_parser(["--input", f"importgenius-ceva-valve={html}"], reports)
+
+            self.assertEqual("", result.stderr)
+            self.assertEqual(0, result.returncode)
+            rows = read_rows(reports)
+            self.assertEqual(["SNHBSHACHI265173"], [row["house_bol"] for row in rows])
+            self.assertEqual("VIRTUAL REALITY DEVICES", rows[0]["commodity"])
+            self.assertEqual("6374 Kgs", rows[0]["weight"])
+
+    def test_extracts_importgenius_wireless_pc_controller_rows(self):
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            html = tmp_path / "importgenius-valve-corp.html"
+            html.write_text(IMPORTGENIUS_VALVE_CONTROLLER_HTML, encoding="utf-8")
+            reports = tmp_path / "reports"
+
+            result = run_parser(["--input", f"importgenius-valve-corp={html}"], reports)
+
+            self.assertEqual("", result.stderr)
+            self.assertEqual(0, result.returncode)
+            rows = read_rows(reports)
+            self.assertEqual(
+                ["SNHBHKGLBG266011", "SNHBHKGLBG265013"],
+                [row["house_bol"] for row in rows],
+            )
+            self.assertEqual("WIRELESS PC CONTROLLER", rows[0]["commodity"])
+            self.assertEqual("VALVE CORPORATION", rows[0]["consignee"])
+            self.assertEqual("CHENG UEI PRECISION IND. CO LTD", rows[0]["shipper"])
+
 
 class CheckCustomsShipmentsShellTests(unittest.TestCase):
     def test_fetches_pages_and_runs_parser(self):
@@ -457,6 +605,76 @@ class CheckCustomsShipmentsShellTests(unittest.TestCase):
                 run_dir / "reports" / "customs-shipments-key-lines.txt"
             ).read_text(encoding="utf-8")
             self.assertIn("SNHBSHACHI265020", key_lines)
+
+    def test_fetches_additional_importgenius_valve_importer_pages(self):
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            run_dir = tmp_path / "run"
+            fake_bin = tmp_path / "bin"
+            fake_bin.mkdir()
+            (tmp_path / "importgenius-ingram-fixture.html").write_text(
+                IMPORTGENIUS_HTML, encoding="utf-8"
+            )
+            (tmp_path / "importgenius-ceva-fixture.html").write_text(
+                IMPORTGENIUS_CEVA_VR_HTML, encoding="utf-8"
+            )
+            (tmp_path / "importgenius-ceva-nl-fixture.html").write_text(
+                IMPORTGENIUS_CEVA_NL_VR_HTML, encoding="utf-8"
+            )
+            (tmp_path / "importgenius-valve-corp-fixture.html").write_text(
+                IMPORTGENIUS_VALVE_CONTROLLER_HTML, encoding="utf-8"
+            )
+            write_executable(
+                fake_bin / "curl",
+                f"""
+                #!/bin/sh
+                for arg do
+                  url="$arg"
+                done
+                case "$url" in
+                  *importgenius.com/importers/ingram-micro-c-o-valve-corporation)
+                    cat "{tmp_path / "importgenius-ingram-fixture.html"}"
+                    ;;
+                  *importgenius.com/importers/ceva-c-o-valve-corporation)
+                    cat "{tmp_path / "importgenius-ceva-fixture.html"}"
+                    ;;
+                  *importgenius.com/importers/ceva-nl-c-o-valve-corporation)
+                    cat "{tmp_path / "importgenius-ceva-nl-fixture.html"}"
+                    ;;
+                  *importgenius.com/importers/valve-corp)
+                    cat "{tmp_path / "importgenius-valve-corp-fixture.html"}"
+                    ;;
+                  *)
+                    exit 22
+                    ;;
+                esac
+                """,
+            )
+            env = os.environ.copy()
+            env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
+
+            result = subprocess.run(
+                [str(ROOT / "scripts" / "check_customs_shipments.sh"), str(run_dir)],
+                cwd=ROOT,
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+            self.assertEqual("", result.stderr)
+            self.assertEqual(0, result.returncode)
+            customs_dir = run_dir / "api" / "customs"
+            self.assertTrue((customs_dir / "importgenius-ceva-valve.html").exists())
+            self.assertTrue((customs_dir / "importgenius-ceva-nl-valve.html").exists())
+            self.assertTrue((customs_dir / "importgenius-valve-corp.html").exists())
+            key_lines = (
+                run_dir / "reports" / "customs-shipments-key-lines.txt"
+            ).read_text(encoding="utf-8")
+            self.assertIn("SNHBSHACHI265173", key_lines)
+            self.assertIn("SNHBSHALAX265177", key_lines)
+            self.assertIn("SNHBHKGLBG266011", key_lines)
 
 
 class CustomsSummaryIntegrationTests(unittest.TestCase):
