@@ -145,6 +145,7 @@ def build(run_dir: Path):
         f"- Retrieved assets: `{reports / 'retrieved-visual-assets.tsv'}`",
         f"- Blocked assets: `{reports / 'blocked-visual-assets.tsv'}`",
         f"- Manual retry URLs: `{reports / 'manual-asset-urls.txt'}`",
+        f"- Steam Frame focus: `{reports / 'frame-focus.md'}`",
         f"- SteamKit/PICS packages: `{reports / 'steamkit-pics-packages.tsv'}`",
         f"- SteamKit/PICS detail: `{reports / 'steamkit-pics-detail.md'}`",
         f"- Customs shipments: `{reports / 'customs-shipments.md'}`",
@@ -156,6 +157,7 @@ def build(run_dir: Path):
     lines.extend(["", "## Notable Lines", ""])
 
     notable = []
+    notable.extend([f"- Frame focus: `{line}`" for line in filtered_first(reports / "frame-focus.md", 8)])
     notable.extend([f"- SteamKit/PICS: `{line}`" for line in filtered_first(reports / "steamkit-pics-key-lines.txt", 8)])
     notable.extend([f"- SteamDB: `{line}`" for line in filtered_first(reports / "steamdb-key-lines.txt", 5)])
     notable.extend([f"- SteamTracking: `{line}`" for line in filtered_first(reports / "steamtracking-pairing-focus.txt", 5)])

@@ -79,6 +79,12 @@ else
   printf '%s\n' "No previous run folder found under $BASE_DIR"
 fi
 
+FRAME_FOCUS_OUT="$RUN_DIR/reports/frame-focus.md"
+python3 "$SCRIPT_DIR/write_frame_focus_report.py" \
+  --run-dir "$RUN_DIR" \
+  --output "$FRAME_FOCUS_OUT"
+printf '%s\n' "Frame focus report: $FRAME_FOCUS_OUT"
+
 STATUS_DRAFT_OUT="$RUN_DIR/reports/status-draft.md"
 python3 "$SCRIPT_DIR/draft_status_update.py" \
   --run-dir "$RUN_DIR" \

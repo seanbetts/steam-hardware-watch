@@ -1,16 +1,23 @@
 ---
 name: steam-hardware-watch
-description: Investigate rumored or upcoming Valve hardware launches, especially Steam Controller, Steam Machine, and Steam Frame. Use when the user wants recurring checks across Komodo, SteamKit/PICS, SteamDB, SteamTracking or GameTracking, Valve CDN or support endpoints, and customs or regulatory sources, with saved artifacts and an updated status ledger.
+description: Investigate Steam Frame launch readiness, using Steam Controller and Steam Machine as baselines after their public launches. Use when the user wants recurring checks across SteamKit/PICS, Valve store/support endpoints, SteamDB, Komodo, SteamTracking or GameTracking, SteamVR, SteamOS, and customs or regulatory sources, with saved artifacts and an updated status ledger.
 ---
 
 # Steam Hardware Watch
 
-Use this skill for recurring evidence-gathering on Valve hardware launch status. Default focus is:
+Use this skill for recurring evidence-gathering on Valve hardware launch status. Current default focus is Steam Frame launch readiness:
 
-- `price`
-- `release date`
-- `same-time launch vs staggered launch`
-- `which product is furthest along`
+- `Frame price`
+- `Frame release date`
+- `Frame package or reservation visibility`
+- `Frame staging on Valve, SteamDB, Komodo, SteamVR, SteamOS, and logistics sources`
+
+Post-Steam Machine launch mode:
+
+- treat Steam Frame as the active target
+- keep Steam Machine and Steam Controller in the watcher as controls, precedent, and shared-infrastructure context
+- do not elevate Machine post-launch churn as a Frame signal unless it mentions Frame, changes shared reservation infrastructure, or provides a direct launch-sequence comparator
+- answer daily check requests from a Frame-first perspective by default
 
 Keep the workflow tiered. Do the high-yield checks every run. Do slower or noisier checks when core sources move.
 
@@ -46,6 +53,7 @@ Use [scripts/init_run.sh](scripts/init_run.sh) to scaffold a run folder and run 
 Use the source helpers when available:
 
 - [scripts/run_watch.sh](scripts/run_watch.sh)
+- [scripts/run_frame_watch.sh](scripts/run_frame_watch.sh)
 - [scripts/check_komodo.sh](scripts/check_komodo.sh)
 - [scripts/check_steamkit_pics.sh](scripts/check_steamkit_pics.sh)
 - [scripts/check_steamdb.sh](scripts/check_steamdb.sh)
@@ -68,9 +76,10 @@ Asset discovery should be dynamic:
 
 Default agent entry point:
 
-- use [scripts/run_watch.sh](scripts/run_watch.sh) unless there is a specific reason to run a source helper directly
+- use [scripts/run_frame_watch.sh](scripts/run_frame_watch.sh) for normal Frame-focused runs
+- use [scripts/run_watch.sh](scripts/run_watch.sh) when the user asks for the broader all-hardware view or when debugging a source helper directly
 - treat the helper scripts as agent-owned implementation details
-- summarize results for the human from `run-summary.md`, `status-draft.md`, and the comparison report
+- summarize results for the human from `frame-focus.md`, `run-summary.md`, `status-draft.md`, and the comparison report
 
 ## Evidence Priority
 
@@ -78,16 +87,37 @@ Apply the rubric in [references/evidence-rubric.md](references/evidence-rubric.m
 
 Default source order:
 
-1. `Komodo`
-2. `SteamKit / PICS`
+1. `SteamKit / PICS`
+2. `Valve support / store / CDN`
 3. `SteamDB`
-4. `SteamTracking / GameTracking`
-5. `SteamVR depots`
-6. `SteamOS package mirror`
-7. `Valve support / store / CDN`
+4. `Komodo`
+5. `SteamTracking / GameTracking`
+6. `SteamVR depots`
+7. `SteamOS package mirror`
 8. `customs / regulatory`
 
 Treat price and exact release date as unconfirmed unless directly exposed by a primary source.
+
+## Frame-Critical Signals
+
+Prioritize these before interpreting lower-level churn:
+
+- SteamKit/PICS movement for Frame app `4165890` or packages `1629484`, `1629486`
+- Valve `appdetails` showing Frame packages, package groups, price, purchase or reservation state, or an exact release date
+- Valve `packagedetails` for Frame packages moving from `success:false` to public data
+- SteamDB package pages for `1629484` or `1629486` moving from existence-only records to details, new `Last Record Update`, or new changenumber
+- Komodo Frame product timestamp changes, new Frame sections, media, manuals, videos, or support docs
+- SteamTracking/GameTracking additions that name Frame setup, pairing, verification, OOBE, guided tours, Steam Link VR, wireless adapters, or Frame package IDs
+- SteamVR or SteamOS additions that explicitly mention Frame, Deckard, Roy, XR, VR, ARM64, wireless adapter, or controller support in a Frame context
+- shipment or filing rows explicitly labelled VR, headset, XR, wireless adapter, or known Frame supplier/importer patterns
+
+Interpretation rules:
+
+- SteamKit/PICS and Valve store/package APIs are the primary readiness sources.
+- SteamDB is corroborating and useful for human-readable package history.
+- Komodo is high-signal for public site staging, but Cloudflare blocks should not stop the rest of a run.
+- SteamTracking, SteamVR, and SteamOS changes are context until they connect to Frame package/API movement, public pages, or shipment evidence.
+- Machine and Controller changes are comparators after launch, not active launch targets.
 
 ## Core Workflow
 
@@ -383,7 +413,8 @@ Use the seeded status files as the starting baseline rather than rediscovering t
 
 ## Wrapper Script
 
-Use [scripts/run_watch.sh](scripts/run_watch.sh) for the normal path.
+Use [scripts/run_frame_watch.sh](scripts/run_frame_watch.sh) for the normal Frame-focused path.
+Use [scripts/run_watch.sh](scripts/run_watch.sh) when the user explicitly wants a broader all-hardware run.
 
 It will:
 
@@ -392,10 +423,11 @@ It will:
 3. auto-detect the previous run folder when possible
 4. write a comparison report into the current run folder
 5. save discovered visual assets into the current run folder
-6. generate a draft status update into the current run folder
+6. generate a Frame-focused report into the current run folder
+7. generate a draft status update into the current run folder
 
 Example:
 
 ```sh
-~/.codex/skills/steam-hardware-watch/scripts/run_watch.sh 2026-04-25
+scripts/run_frame_watch.sh 2026-06-24
 ```

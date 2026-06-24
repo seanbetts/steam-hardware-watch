@@ -45,6 +45,7 @@ def build_draft(run_dir: Path):
     if compare_file:
         compare_lines = [line for line in read_lines(compare_file) if line.startswith("- ")][:12]
 
+    frame_focus_lines = first_n_nonempty(reports / "frame-focus.md", 12)
     komodo_mods = first_n_nonempty(reports / "komodo-product-modified.tsv", 10)
     steamkit_lines = first_n_nonempty(reports / "steamkit-pics-key-lines.txt", 10)
     steamdb_lines = first_n_nonempty(reports / "steamdb-key-lines.txt", 8)
@@ -104,6 +105,17 @@ def build_draft(run_dir: Path):
         [
             "",
             "### Source Snapshot Draft",
+            "",
+            "#### Steam Frame Focus",
+        ]
+    )
+    if frame_focus_lines:
+        lines.extend([f"- `{line}`" for line in frame_focus_lines])
+    else:
+        lines.append("- No Steam Frame focused report found.")
+
+    lines.extend(
+        [
             "",
             "#### Komodo",
         ]
