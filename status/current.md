@@ -1,14 +1,284 @@
 # Steam Hardware Watch Status
 
-Last updated: `2026-06-22`
+Last updated: `2026-07-11`
 
 ## Best Current Answer
 
-- `Price`: Steam Controller remains confirmed by official Valve store APIs at `$99.00` in the US. Steam Machine is now confirmed public in the Valve store API, starting at `$1,049.00` in the US and `£879.00` in the UK. Steam Frame still has no confirmed public price.
-- `Release date`: Steam Controller remains confirmed with release date `May 4, 2026` and package `1558609`. Steam Machine is now confirmed with release date `Jun 30, 2026` in the US API / `30 Jun, 2026` in the UK API. Steam Frame still exposes only `Coming soon`.
-- `Same-time launch`: same-day availability for the full trio is ruled out. Steam Controller is public and purchasable, Steam Machine is now public with packages/package group/prices/date, and Steam Frame still has no public package, package group, price, or exact availability. The Steam Machine watch correctly caught the launch sequence: multi-package backend movement, same-day Komodo page/media staging, then public Valve API exposure.
+- `Price`: Steam Controller remains confirmed by official Valve store APIs at `$99.00` in the US. Steam Machine is confirmed public in the Valve store API, starting at `$1,049.00` in the US and `£879.00` in the UK. Steam Frame still has no confirmed public price.
+- `Release date`: Steam Controller remains confirmed with release date `May 4, 2026` and package `1558609`. Steam Machine is confirmed with release date `Jun 30, 2026` in the US API / `30 Jun, 2026` in the UK API. Steam Frame still exposes only `Coming soon`.
+- `Same-time launch`: same-day availability for the full trio is ruled out. Steam Controller is public and purchasable, Steam Machine is public with packages/package group/prices/date, and Steam Frame still has no public package, package group, price, or exact availability.
+- `2026-07-11 Frame check`: no Steam Frame launch-readiness movement in the primary gates. Valve still shows Frame app `4165890` as `Coming soon` with no packages, package groups, or price; Frame packages `1629484` and `1629486` still return `packagedetails success:false`; SteamKit/PICS changenumbers are unchanged; SteamDB still shows both Frame packages as `private_exists_only`; and Komodo Frame remains at `2026-07-03T15:56:30` with only the old wishlist section / old `Frame_BG.png`. Supporting signals: a new `2026-07-09` customs row appeared for `HMD+VR CONTROLLER ACCESSORY, XXXXXX` from `CHENG UEI PRECISION IND. CO LTD` to `VALVE CORPORATION` (`9 PKG`, `1656 Kgs`, BOL `SNHBHKGLBG267012`); `steam_client_publicbeta_linuxarm64` moved to `1783717985`, but `bins_hardware_linuxarm64` did not change; and normalized SteamTracking comparison added Steam Machine compatibility UI strings, which looks like Machine software/support polish rather than Frame launch readiness.
+- `2026-07-10 Frame check`: Steam Frame still has no public launch-readiness movement in the primary gates. Valve still shows Frame app `4165890` as `Coming soon` with no packages, package groups, or price; Frame packages `1629484` and `1629486` still return `packagedetails success:false`; SteamKit/PICS changenumbers are unchanged; SteamDB still shows both Frame packages as `private_exists_only`; and Komodo Frame remains at `2026-07-03T15:56:30` with only the old wishlist section / old `Frame_BG.png`. Supporting signals did move: SteamTracking advanced to `319a0a9d08aaa4c700914f0224372e41eaf4e29b` and added semantic Steam Frame Wireless Adapter troubleshooting / airplane-mode dialog strings and skip settings; `steam_client_publicbeta_linuxarm64` moved to `1783556394`, but `bins_hardware_linuxarm64` did not change. Customs now includes newer `2026-07-08` and `2026-07-07` rows, including one `VIRTUAL REALITY DEVICES` shipment and multiple `GAME CONSOLE` shipments. Steam Machine app `4165910` and package `1629446` moved in SteamKit/PICS post-launch; treat that as comparator/background unless it later connects to Frame.
+- `2026-07-08 Frame check`: no Steam Frame launch-readiness movement in the primary gates. Valve still shows Frame app `4165890` as `Coming soon` with no packages, package groups, or price; Frame packages `1629484` and `1629486` still return `packagedetails success:false`; SteamKit/PICS changenumbers are unchanged; SteamDB still shows both Frame packages as `private_exists_only`; and Komodo Frame remains at `2026-07-03T15:56:30` with only the old wishlist section / old `Frame_BG.png`. Supporting background movement did appear in SteamTracking: source advanced to `5f07ded044d4a83a4d53fa68966b9c978821ae55`, `steam_client_beta_linuxarm64` moved to `1783475136`, and `steam_client_publicbeta_linuxarm64` moved to `1783376539`; however `bins_hardware_linuxarm64` did not change and a normalized SteamTracking hardware-signal diff versus `2026-07-06` had `0` semantic additions/removals. Customs still has no newer relevant rows beyond `2026-07-01`.
+- `2026-07-06 Frame check`: no new Steam Frame launch-readiness movement. Valve still shows Frame app `4165890` as `Coming soon` with no packages, package groups, or price; Frame packages `1629484` and `1629486` still return `packagedetails success:false`; SteamKit/PICS changenumbers are unchanged; SteamDB still shows both Frame packages as `private_exists_only` with `5 May 2026 - 18:50:54 UTC` last record updates; and Komodo Frame remains at `2026-07-03T15:56:30` with only the old wishlist section / old `Frame_BG.png`. SteamTracking did not advance from `d7f9e6423a61e5e00dea911fce64233765aca379`, ARM64 manifests did not move, and customs still has no newer relevant rows beyond `2026-07-01`.
+- `2026-07-05 Frame check`: no new Steam Frame launch-readiness movement since the July 3 Komodo media/product staging. Valve still shows Frame app `4165890` as `Coming soon` with no packages or package groups, Frame packages `1629484` and `1629486` still return `packagedetails success:false`, SteamKit/PICS changenumbers are unchanged, SteamDB still shows both Frame packages as `private_exists_only`, and Komodo Frame remains at `2026-07-03T15:56:30` with one old wishlist section / old `Frame_BG.png`. SteamTracking source advanced to `d7f9e6423a61e5e00dea911fce64233765aca379` (`2026-07-04T00:48:46Z`), but no new Frame package/API/string launch signal appeared.
+- `2026-07-03 Frame check`: Komodo Frame product staging moved and is not timestamp-only: product `modified` moved to `2026-07-03T15:56:30`, `featured_media` changed from `413708` to `456489`, and the product excerpt removed the inline `frameLogo.svg` image. The new featured media is `source_SF_headsetControllers_front_2.jpg`, dated/modified `2026-07-03T15:54:53`. A later same-day recheck still shows no launch: Valve, SteamKit/PICS, and SteamDB show no public Frame package, package group, price, or exact date. SteamTracking publicbeta ARM64 advanced, but `bins_hardware_linuxarm64` did not change. New `2026-07-01` shipment rows include one `VIRTUAL REALITY DEVICES` row and two `GAME CONSOLE` rows.
+- `2026-07-01 Frame check`: no public Steam Frame readiness change. Frame app/package rows are unchanged in Valve, SteamKit/PICS, and SteamDB; Komodo Frame timestamp remains `2026-06-29T12:11:28` with unchanged old wishlist section/media; no newer shipment rows appeared. Background movement was limited to Steam Machine app and Steam Controller package metadata.
+- `2026-06-29 Frame check`: no public Steam Frame readiness change. Komodo Frame product timestamp moved to `2026-06-29T12:11:28`, but raw JSON diff versus `2026-06-28` showed no content/class/category/tag/field change after excluding `modified` / `modified_gmt`; Frame sections and media also remained unchanged. Valve, SteamKit/PICS, and SteamDB all remain unchanged for Frame app `4165890` and packages `1629484`, `1629486`.
+- `2026-06-28 Frame check`: no public Steam Frame readiness change. Valve, SteamKit/PICS, SteamDB, and Komodo all remain unchanged for Frame app `4165890` and packages `1629484`, `1629486`. Newer `2026-06-24` `VIRTUAL REALITY DEVICES` shipment rows appeared, which is useful logistics corroboration but not launch confirmation.
+- `2026-06-25 Frame check`: no public Steam Frame readiness change. Valve, SteamKit/PICS, SteamDB, and Komodo all remain unchanged for Frame app `4165890` and packages `1629484`, `1629486`. SteamTracking/ARM64 client manifests moved, but without Frame package/API movement or new semantic Frame strings.
 
 ## Source Snapshot
+
+### 2026-07-11 Frame-Focused Pass
+
+- Frame focus report: `/Users/sean/Coding/steam-hardware-watch/runs/2026-07-11/reports/frame-focus.md`
+- Run note: `/Users/sean/Coding/steam-hardware-watch/status/runs/2026-07-11.md`
+- Valve API:
+  - Frame app `4165890`: public metadata only, `Coming soon`, `packages=`, `package_groups=0`, no price.
+  - Frame package `1629484`: private, `packagedetails success:false`.
+  - Frame package `1629486`: private, `packagedetails success:false`.
+- SteamKit/PICS:
+  - Frame app `4165890`: changenumber `35675573`, unchanged.
+  - Frame packages `1629484`, `1629486`: changenumber `35672606`, unchanged.
+  - No watched SteamKit/PICS changenumber movement versus the previous report.
+- SteamDB:
+  - Frame packages `1629484`, `1629486`: still `private_exists_only`, last record update `5 May 2026 - 18:50:54 UTC`, changenumber `35672606`.
+  - Controller app page was challenge-blocked, but the watched reservation-package table was captured.
+- Komodo:
+  - Frame product timestamp remains `2026-07-03T15:56:30`.
+  - No new Frame sections or section media appeared; still one old wishlist section and old `Frame_BG.png`.
+- SteamTracking:
+  - Source advanced from `319a0a9d08aaa4c700914f0224372e41eaf4e29b` to `292afdbd449f44b4988e5c0423d90bf1c564ad7c` (`2026-07-10T22:51:13Z`).
+  - Normalized hardware-signal comparison versus `2026-07-10` showed `22` semantic additions and `0` removals, all for Steam Machine compatibility UI strings such as `SteamMachine_CompatibilitySection_Title`, `SteamMachine_CompatibilitySection_Details`, and `SteamMachineVerified_DescriptionHeader_*`.
+  - `steam_client_beta_linuxarm64` stayed at `1783475136`.
+  - `steam_client_publicbeta_linuxarm64` moved from `1783556394` to `1783717985`.
+  - `bins_hardware_linuxarm64` did not change in beta or publicbeta.
+- Customs:
+  - New row: `2026-07-09` `VALVE CORPORATION` from `CHENG UEI PRECISION IND. CO LTD`, `HMD+VR CONTROLLER ACCESSORY, XXXXXX`, `9 PKG`, `1656 Kgs`, BOL `SNHBHKGLBG267012`.
+  - The July 8 `VIRTUAL REALITY DEVICES` row and July 7-8 `GAME CONSOLE` rows remain in the latest captured table. Treat customs as logistics corroboration only.
+
+### 2026-07-10 Frame-Focused Pass
+
+- Frame focus report: `/Users/sean/Coding/steam-hardware-watch/runs/2026-07-10/reports/frame-focus.md`
+- Run note: `/Users/sean/Coding/steam-hardware-watch/status/runs/2026-07-10.md`
+- Valve API:
+  - Frame app `4165890`: public metadata only, `Coming soon`, `packages=`, `package_groups=0`, no price.
+  - Frame package `1629484`: private, `packagedetails success:false`.
+  - Frame package `1629486`: private, `packagedetails success:false`.
+- SteamKit/PICS:
+  - Frame app `4165890`: changenumber `35675573`, unchanged.
+  - Frame packages `1629484`, `1629486`: changenumber `35672606`, unchanged.
+  - Background comparator movement: Machine app `4165910` moved from `36924026` to `37155792`; Machine package `1629446` moved from `36887709` to `37129417`.
+- SteamDB:
+  - Frame packages `1629484`, `1629486`: still `private_exists_only`, last record update `5 May 2026 - 18:50:54 UTC`.
+  - Machine package `1629446` corroborates the post-launch movement with last record update `8 July 2026 - 22:51:58 UTC`, changenumber `37129417`.
+- Komodo:
+  - Frame product timestamp remains `2026-07-03T15:56:30`.
+  - No new Frame sections or section media appeared; still one old wishlist section and old `Frame_BG.png`.
+- SteamTracking:
+  - Source advanced from `5f07ded044d4a83a4d53fa68966b9c978821ae55` to `319a0a9d08aaa4c700914f0224372e41eaf4e29b` (`2026-07-10T04:44:11Z`).
+  - Normalized hardware-signal comparison versus `2026-07-08` showed semantic additions for Steam Frame Wireless Adapter troubleshooting and airplane-mode dialogs, including `SteamFrameWirelessAdapterTroubleshootingDialog_*`, `SteamFrameWirelessAdapterAirplaneDialog_Description`, `skip_steamframe_troubleshooting_dialog`, and `skip_steamframe_airplane_dialog`.
+  - `steam_client_beta_linuxarm64` stayed at `1783475136`.
+  - `steam_client_publicbeta_linuxarm64` moved from `1783376539` to `1783556394`.
+  - `bins_hardware_linuxarm64` did not change in beta or publicbeta.
+- Customs:
+  - Newer rows appeared beyond `2026-07-01`, including `2026-07-08` `VIRTUAL REALITY DEVICES` shipment `SNHBSHALAX266135` (`42 PKG`, `6457 Kgs`) to `CEVA NL C/O VALVE CORPORATION`.
+  - Additional `2026-07-08` and `2026-07-07` `GAME CONSOLE` rows also appeared. Treat customs as logistics corroboration only.
+
+### 2026-07-08 Frame-Focused Pass
+
+- Frame focus report: `/Users/sean/Coding/steam-hardware-watch/runs/2026-07-08/reports/frame-focus.md`
+- Run note: `/Users/sean/Coding/steam-hardware-watch/status/runs/2026-07-08.md`
+- Valve API:
+  - Frame app `4165890`: public metadata only, `Coming soon`, `packages=`, `package_groups=0`, no price.
+  - Frame package `1629484`: private, `packagedetails success:false`.
+  - Frame package `1629486`: private, `packagedetails success:false`.
+- SteamKit/PICS:
+  - Frame app `4165890`: changenumber `35675573`, unchanged.
+  - Frame packages `1629484`, `1629486`: changenumber `35672606`, unchanged.
+- SteamDB:
+  - Frame packages `1629484`, `1629486`: still `private_exists_only`, last record update `5 May 2026 - 18:50:54 UTC`.
+- Komodo:
+  - Frame product timestamp remains `2026-07-03T15:56:30`.
+  - No new Frame sections or section media appeared; still one old wishlist section and old `Frame_BG.png`.
+- SteamTracking:
+  - Source advanced to commit `5f07ded044d4a83a4d53fa68966b9c978821ae55` (`2026-07-08T20:15:39Z`) after restoring the volatile `/tmp/SteamTracking-master` checkout.
+  - `steam_client_beta_linuxarm64` moved from `1782442097` to `1783475136`.
+  - `steam_client_publicbeta_linuxarm64` moved from `1783028805` to `1783376539`.
+  - `bins_hardware_linuxarm64` did not change in beta or publicbeta.
+  - A normalized SteamTracking hardware-signal diff versus `2026-07-06` had `0` semantic additions/removals, so the Frame string changes in the raw comparison are line-number churn around existing setup/pairing/compatibility strings.
+- Customs:
+  - No newer relevant rows appeared beyond the `2026-07-01` VR/game-console rows.
+
+### 2026-07-06 Frame-Focused Pass
+
+- Frame focus report: `/Users/sean/Coding/steam-hardware-watch/runs/2026-07-06/reports/frame-focus.md`
+- Run note: `/Users/sean/Coding/steam-hardware-watch/status/runs/2026-07-06.md`
+- Valve API:
+  - Frame app `4165890`: public metadata only, `Coming soon`, `packages=`, `package_groups=0`, no price.
+  - Frame package `1629484`: private, `packagedetails success:false`.
+  - Frame package `1629486`: private, `packagedetails success:false`.
+- SteamKit/PICS:
+  - Frame app `4165890`: changenumber `35675573`, unchanged.
+  - Frame packages `1629484`, `1629486`: changenumber `35672606`, unchanged.
+- SteamDB:
+  - Frame packages `1629484`, `1629486`: still `private_exists_only`, last record update `5 May 2026 - 18:50:54 UTC`.
+  - Controller app page was challenge-blocked, but the watched reservation-package table was captured.
+- Komodo:
+  - Frame product timestamp remains `2026-07-03T15:56:30`.
+  - No new Frame sections or section media appeared; still one old wishlist section and old `Frame_BG.png`.
+- SteamTracking:
+  - Source remained at commit `d7f9e6423a61e5e00dea911fce64233765aca379` (`2026-07-04T00:48:46Z`).
+  - `steam_client_beta_linuxarm64` stayed at version `1782442097`.
+  - `steam_client_publicbeta_linuxarm64` stayed at version `1783028805`.
+  - `bins_hardware_linuxarm64` did not change.
+- Customs:
+  - No newer relevant rows appeared beyond the `2026-07-01` VR/game-console rows.
+
+### 2026-07-05 Frame-Focused Pass
+
+- Frame focus report: `/Users/sean/Coding/steam-hardware-watch/runs/2026-07-05/reports/frame-focus.md`
+- Run note: `/Users/sean/Coding/steam-hardware-watch/status/runs/2026-07-05.md`
+- Valve API:
+  - Frame app `4165890`: public metadata only, `Coming soon`, `packages=`, `package_groups=0`, no price.
+  - Frame package `1629484`: private, `packagedetails success:false`.
+  - Frame package `1629486`: private, `packagedetails success:false`.
+- SteamKit/PICS:
+  - Frame app `4165890`: changenumber `35675573`, unchanged.
+  - Frame packages `1629484`, `1629486`: changenumber `35672606`, unchanged.
+- SteamDB:
+  - Frame packages `1629484`, `1629486`: still `private_exists_only`, last record update `5 May 2026 - 18:50:54 UTC`.
+- Komodo:
+  - Frame product timestamp remains `2026-07-03T15:56:30`.
+  - No new Frame sections or section media appeared; still one old wishlist section and old `Frame_BG.png`.
+- SteamTracking:
+  - Source updated to commit `d7f9e6423a61e5e00dea911fce64233765aca379` (`2026-07-04T00:48:46Z`) after restoring the volatile `/tmp/SteamTracking-master` checkout.
+  - `steam_client_beta_linuxarm64` stayed at version `1782442097`.
+  - `steam_client_publicbeta_linuxarm64` stayed at version `1783028805`.
+  - `bins_hardware_linuxarm64` did not change.
+- Customs:
+  - No newer relevant rows appeared beyond the `2026-07-01` VR/game-console rows.
+
+### 2026-07-03 Frame-Focused Pass
+
+- Frame focus report: `/Users/sean/Coding/steam-hardware-watch/runs/2026-07-03/reports/frame-focus.md`
+- Run note: `/Users/sean/Coding/steam-hardware-watch/status/runs/2026-07-03.md`
+- Valve API:
+  - Frame app `4165890`: public metadata only, `Coming soon`, `packages=`, `package_groups=0`, no price.
+  - Frame package `1629484`: private, `packagedetails success:false`.
+  - Frame package `1629486`: private, `packagedetails success:false`.
+- SteamKit/PICS:
+  - Frame app `4165890`: changenumber `35675573`, unchanged.
+  - Frame packages `1629484`, `1629486`: changenumber `35672606`, unchanged.
+- SteamDB:
+  - Frame packages `1629484`, `1629486`: still `private_exists_only`, last record update `5 May 2026 - 18:50:54 UTC`.
+  - Watched package rows were collected without SteamDB package errors on the later same-day recheck.
+- Komodo:
+  - Frame product timestamp moved from `2026-06-29T12:11:28` to `2026-07-03T15:56:30`.
+  - This was not timestamp-only: `featured_media` changed from `413708` to `456489`, the product excerpt removed the inline `frameLogo.svg` image, and media `456489` is `source_SF_headsetControllers_front_2.jpg`, dated/modified `2026-07-03T15:54:53`.
+  - Frame sections remained unchanged: one old `JA - Steam Frame Wishlist` section.
+  - Frame section media remained unchanged: old `Frame_BG.png`.
+- SteamTracking:
+  - Source updated to commit `17c15d162dbb19ea40d0ae757401323edfe2fec8` (`2026-07-02T22:21:06Z`).
+  - `steam_client_beta_linuxarm64` did not move from version `1782442097`.
+  - `steam_client_publicbeta_linuxarm64` moved from `1782437068` to `1783028805`; `bins_linuxarm64`, `steam_linuxarm64`, and `runtime_steamrt_linuxarm64` changed.
+  - `bins_hardware_linuxarm64` did not change, so treat this as ARM64 background movement rather than direct hardware readiness.
+- Customs:
+  - Newer `2026-07-01` rows appeared: one `VIRTUAL REALITY DEVICES` shipment (`42 PKG`, `6433 Kgs`) and two `GAME CONSOLE` shipments (`42 PKG`, `12541 Kgs` / `12681 Kgs`) from `TECH-FRONT (CHONGQING) COMPUTER CO` to `CEVA C/O VALVE CORPORATION`.
+  - Customs data remains logistics corroboration only and does not prove launch timing or final SKU identity.
+
+### 2026-07-01 Frame-Focused Pass
+
+- Frame focus report: `/Users/sean/Coding/steam-hardware-watch/runs/2026-07-01/reports/frame-focus.md`
+- Run note: `/Users/sean/Coding/steam-hardware-watch/status/runs/2026-07-01.md`
+- Valve API:
+  - Frame app `4165890`: public metadata only, `Coming soon`, `packages=`, `package_groups=0`, no price.
+  - Frame package `1629484`: private, `packagedetails success:false`.
+  - Frame package `1629486`: private, `packagedetails success:false`.
+- SteamKit/PICS:
+  - Frame app `4165890`: changenumber `35675573`, unchanged.
+  - Frame packages `1629484`, `1629486`: changenumber `35672606`, unchanged.
+  - Background changes: Machine app `4165910` moved to `36924026`; Controller package `1558609` moved to `36950464`.
+- SteamDB:
+  - Frame packages `1629484`, `1629486`: still `private_exists_only`, last record update `5 May 2026 - 18:50:54 UTC`.
+  - Controller package `1558609` moved to changenumber `36950464`, last record update `30 June 2026 - 23:02:23 UTC`.
+- Komodo:
+  - Frame product timestamp remains `2026-06-29T12:11:28`.
+  - Frame product JSON is unchanged versus `2026-06-29` after excluding `modified` / `modified_gmt`.
+  - Frame sections/media remained unchanged: one old wishlist section and old `Frame_BG.png`.
+- SteamTracking:
+  - Source updated to commit `bc07c53ad22c34f43e2280adb42cbc9d143d5c44` (`2026-07-01T05:15:42Z`).
+  - ARM64 client manifest versions did not advance beyond the `2026-06-28` baseline: beta `1782442097`, publicbeta `1782437068`.
+  - `bins_hardware_linuxarm64` did not change.
+- Customs:
+  - No newer rows appeared beyond the `2026-06-24` VR/game-console rows.
+
+### 2026-06-29 Frame-Focused Pass
+
+- Frame focus report: `/Users/sean/Coding/steam-hardware-watch/runs/2026-06-29/reports/frame-focus.md`
+- Run note: `/Users/sean/Coding/steam-hardware-watch/status/runs/2026-06-29.md`
+- Valve API:
+  - Frame app `4165890`: public metadata only, `Coming soon`, `packages=`, `package_groups=0`, no price.
+  - Frame package `1629484`: private, `packagedetails success:false`.
+  - Frame package `1629486`: private, `packagedetails success:false`.
+- SteamKit/PICS:
+  - Frame app `4165890`: changenumber `35675573`, unchanged.
+  - Frame packages `1629484`, `1629486`: changenumber `35672606`, unchanged.
+- SteamDB:
+  - Frame packages `1629484`, `1629486`: still `private_exists_only`, last record update `5 May 2026 - 18:50:54 UTC`.
+- Komodo:
+  - Frame product timestamp moved from `2026-05-27T16:53:46` to `2026-06-29T12:11:28`.
+  - Raw Frame product JSON was otherwise identical to `2026-06-28` after excluding `modified` / `modified_gmt`.
+  - Frame sections/media remained unchanged: one old wishlist section and old `Frame_BG.png`.
+- SteamTracking:
+  - Source updated to commit `b6376be5d2fd55efdade6f25f188a66c3306adf1` (`2026-06-28T20:12:17Z`).
+  - ARM64 client manifest versions did not advance beyond the `2026-06-28` baseline: beta `1782442097`, publicbeta `1782437068`.
+  - `bins_hardware_linuxarm64` did not change.
+- Customs:
+  - No newer rows appeared beyond the `2026-06-24` VR/game-console rows.
+
+### 2026-06-28 Frame-Focused Pass
+
+- Frame focus report: `/Users/sean/Coding/steam-hardware-watch/runs/2026-06-28/reports/frame-focus.md`
+- Run note: `/Users/sean/Coding/steam-hardware-watch/status/runs/2026-06-28.md`
+- Valve API:
+  - Frame app `4165890`: public metadata only, `Coming soon`, `packages=`, `package_groups=0`, no price.
+  - Frame package `1629484`: private, `packagedetails success:false`.
+  - Frame package `1629486`: private, `packagedetails success:false`.
+- SteamKit/PICS:
+  - Frame app `4165890`: changenumber `35675573`, unchanged.
+  - Frame packages `1629484`, `1629486`: changenumber `35672606`, unchanged.
+  - Machine packages `1629446`, `1629447`, `1629458`, `1629460` moved again post-launch to changenumbers `36887709`, `36887708`, `36887710`, `36887712`.
+- SteamDB:
+  - Frame packages `1629484`, `1629486`: still `private_exists_only`, last record update `5 May 2026 - 18:50:54 UTC`.
+  - Machine package movement was corroborated around `27 June 2026 - 22:06 UTC`; treat as post-launch Machine churn unless it later connects to Frame.
+- Komodo:
+  - Frame product timestamp remains `2026-05-27T16:53:46`.
+  - No new Frame sections/media appeared.
+- SteamTracking:
+  - Source used fresh checkout commit `94700ae06b85d54b262bf6ce8e4607eaca293876` (`2026-06-27T04:43:47Z`) after `/tmp/SteamTracking-master` was found invalid.
+  - `steam_client_beta_linuxarm64` moved to version `1782442097`; `steam_client_publicbeta_linuxarm64` moved to version `1782437068`.
+  - `bins_hardware_linuxarm64` did not change in beta or publicbeta.
+  - Frame string comparison showed line-number churn around existing setup/pairing/compatibility strings, not new launch-readiness content.
+- Customs:
+  - Newer `2026-06-24` VR rows appeared: four `VIRTUAL REALITY DEVICES` shipments from `TECH-FRONT (CHONGQING) COMPUTER CO` to CEVA / CEVA NL C/O Valve, each `42 PKG`, around `6422-6443 Kgs`.
+  - One `2026-06-24` `GAME CONSOLE` row also appeared: `42 PKG`, `12606 Kgs`.
+  - These rows are logistics corroboration only; they do not prove launch timing or final SKU identity.
+
+### 2026-06-25 Frame-Focused Pass
+
+- Frame focus report: `/Users/sean/Coding/steam-hardware-watch/runs/2026-06-25/reports/frame-focus.md`
+- Run note: `/Users/sean/Coding/steam-hardware-watch/status/runs/2026-06-25.md`
+- Valve API:
+  - Frame app `4165890`: public metadata only, `Coming soon`, `packages=`, `package_groups=0`, no price.
+  - Frame package `1629484`: private, `packagedetails success:false`.
+  - Frame package `1629486`: private, `packagedetails success:false`.
+- SteamKit/PICS:
+  - Frame app `4165890`: changenumber `35675573`, unchanged.
+  - Frame packages `1629484`, `1629486`: changenumber `35672606`, unchanged.
+- SteamDB:
+  - Frame packages `1629484`, `1629486`: still `private_exists_only`, last record update `5 May 2026 - 18:50:54 UTC`.
+- Komodo:
+  - Frame product timestamp remains `2026-05-27T16:53:46`.
+  - No new Frame sections/media appeared.
+- SteamTracking:
+  - Source updated to commit `8dadd688e7c5b7ec08e73095ebd79afd4fdfee18` (`2026-06-25T02:29:29Z`).
+  - `steam_client_beta_linuxarm64` moved to version `1782330129`; `steam_client_publicbeta_linuxarm64` moved to version `1782344391`.
+  - `bins_hardware_linuxarm64` did not change in beta or publicbeta.
+  - Frame string comparison showed line-number churn around existing setup/pairing/compatibility strings, not new launch-readiness content.
+- Customs:
+  - No newer rows appeared beyond the existing `2026-06-17` VR/game-console/controller rows.
 
 ### Komodo
 
