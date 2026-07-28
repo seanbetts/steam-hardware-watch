@@ -41,6 +41,39 @@ scripts/run_frame_watch.sh YYYY-MM-DD /custom/run-base /path/to/SteamTracking
 
 Use `scripts/run_watch.sh` when you explicitly want the broader all-hardware view or when debugging an individual source helper.
 
+For a quick Komodo-only recheck, use:
+
+```sh
+scripts/run_frame_watch.sh --komodo-only YYYY-MM-DD
+```
+
+This initializes the dated run folder, runs `check_komodo.sh`, prints whether Komodo product timestamps changed since the previous run, reports any newly discovered Komodo asset URLs, writes `run-summary.md`, and skips SteamKit/PICS, SteamDB, SteamTracking, SteamVR, SteamOS, Valve endpoint, customs, comparison, and status-draft steps.
+
+Example output:
+
+```text
+Run dir: /Users/sean/Coding/steam-hardware-watch/runs/2026-07-28
+Run note: /Users/sean/Coding/steam-hardware-watch/status/runs/2026-07-28.md
+Saved Komodo API responses to /Users/sean/Coding/steam-hardware-watch/runs/2026-07-28/api/komodo
+Saved Komodo summaries to /Users/sean/Coding/steam-hardware-watch/runs/2026-07-28/reports
+Komodo updated: yes (changed since previous run 2026-07-27)
+Komodo changes:
+- frame: 2026-07-03T15:56:30 -> 2026-07-28T10:11:12
+Komodo timestamps: controller=2026-07-27T15:46:17, machine=2026-07-27T15:39:56, frame=2026-07-28T10:11:12
+Komodo new assets: yes (1 new, 3 current, since previous run 2026-07-27)
+Komodo new asset URLs:
+- https://komodostation.com/wp-content/uploads/2026/07/new-frame-asset.jpg
+Run summary: /Users/sean/Coding/steam-hardware-watch/runs/2026-07-28/reports/run-summary.md
+Komodo-only run complete.
+```
+
+If nothing changed, the key lines should read:
+
+```text
+Komodo updated: no (matches previous run 2026-07-27)
+Komodo new assets: no (2 current, matches previous run 2026-07-27)
+```
+
 ## Repository Layout
 
 ```text
@@ -119,6 +152,14 @@ scripts/close_komodo.sh
 ```
 
 That keeps Komodo access isolated from your normal Chrome profile and gives the agent a reusable trusted browser session when Komodo blocks normal automation.
+
+For a focused Komodo recheck, use the same bootstrap with the Komodo-only flag:
+
+```sh
+scripts/bootstrap_komodo.sh
+scripts/run_frame_watch.sh --komodo-only 2026-07-28
+scripts/close_komodo.sh
+```
 
 SteamDB can require the same live-browser treatment:
 
@@ -217,6 +258,24 @@ Then use:
 
 - `RUN_DIR/reports/run-summary.md`
 - `RUN_DIR/reports/compare-vs-*.md`
+
+## Agent Checklist
+
+For a fresh coding agent, the normal operating loop is:
+
+1. Read `SKILL.md` before running or editing anything.
+2. Choose the narrowest relevant command:
+   - `scripts/run_frame_watch.sh YYYY-MM-DD` for the normal Frame-focused pass.
+   - `scripts/run_frame_watch.sh --komodo-only YYYY-MM-DD` for a quick Komodo recheck.
+   - `scripts/run_watch.sh YYYY-MM-DD` only for the broader all-hardware view or source-helper debugging.
+3. Inspect `frame-focus.md` first for full runs, then `run-summary.md`, `status-draft.md`, and `compare-vs-*.md`.
+4. Put primary package/store gates first when reporting: SteamKit/PICS, Valve APIs, SteamDB package pages, then Komodo.
+5. Treat SteamTracking, SteamVR, SteamOS, and customs rows as secondary context unless they connect directly to Frame package/API, public-page, or shipment evidence.
+6. Update `status/current.md` only for material movement or a new clean baseline.
+7. Append `status/evidence.jsonl` only for evidence-grade findings, using `scripts/append_evidence.py`.
+8. Keep raw artifacts under gitignored `runs/`; never commit `.local/`, browser profiles, sessions, cookies, or one-time auth codes.
+9. Validate before finishing: parse `status/evidence.jsonl` if touched, run `git diff --check`, inspect staged scope, and finish with `git status --short`.
+10. Commit only the intended files.
 
 ## Agent Usage
 
@@ -471,6 +530,13 @@ Normal use:
 2. read `frame-focus.md`, then `run-summary.md`
 3. inspect the comparison report if something changed
 4. update `status/current.md` and `status/evidence.jsonl` only for material changes
+
+Quick Komodo recheck:
+
+1. run `scripts/run_frame_watch.sh --komodo-only YYYY-MM-DD`
+2. scan the CLI lines for product timestamp changes and new asset URLs
+3. read `run-summary.md` and the Komodo reports under `reports/`
+4. rerun the full Frame watcher only if Komodo exposes material movement
 
 Escalation:
 

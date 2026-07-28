@@ -77,6 +77,7 @@ Asset discovery should be dynamic:
 Default agent entry point:
 
 - use [scripts/run_frame_watch.sh](scripts/run_frame_watch.sh) for normal Frame-focused runs
+- use `scripts/run_frame_watch.sh --komodo-only YYYY-MM-DD` when the user asks for a focused Komodo-only recheck
 - use [scripts/run_watch.sh](scripts/run_watch.sh) when the user asks for the broader all-hardware view or when debugging a source helper directly
 - treat the helper scripts as agent-owned implementation details
 - summarize results for the human from `frame-focus.md`, `run-summary.md`, `status-draft.md`, and the comparison report
@@ -124,6 +125,14 @@ Interpretation rules:
 ### 1. Komodo
 
 Read [references/komodo-api-notes.md](references/komodo-api-notes.md) first.
+
+For a quick Komodo-only check, prefer:
+
+```sh
+scripts/run_frame_watch.sh --komodo-only YYYY-MM-DD
+```
+
+This initializes the run folder, runs only the Komodo helper, prints product timestamp changes and newly discovered asset URLs versus the previous run, writes `run-summary.md`, and skips the full watcher sources and comparison/status-draft steps.
 
 Check:
 
