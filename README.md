@@ -1,10 +1,9 @@
 # Steam Hardware Watch
 
-Agent-oriented monitoring workflow for rumored or upcoming Valve hardware, focused on:
+Agent-oriented monitoring workflow for rumored or upcoming Valve hardware. The current default focus is Steam Frame launch readiness, with launched hardware retained as comparator context:
 
-- `Steam Controller`
-- `Steam Machine`
-- `Steam Frame`
+- active target: `Steam Frame`
+- comparators: `Steam Controller`, `Steam Machine`
 
 It is designed to be run by a coding agent through the included `SKILL.md`, with scripts that:
 
@@ -24,21 +23,23 @@ It is a repeatable evidence-gathering workflow for answering a narrow set of que
 - did anything change?
 - is there a price leak?
 - is there a release-date leak?
-- does the controller look ahead of Machine/Frame?
+- has Steam Frame gained package, price, release-date, site, client, or shipment evidence?
 - are there new media assets or support documents?
 
-The normal entry point is the wrapper script:
+The normal Frame-focused entry point is:
 
 ```sh
-scripts/run_watch.sh YYYY-MM-DD
+scripts/run_frame_watch.sh YYYY-MM-DD
 ```
 
 By default this writes ignored artifacts under `runs/YYYY-MM-DD` in this repo and uses `/tmp/SteamTracking-master`.
 Pass explicit paths only when you want to override those defaults:
 
 ```sh
-scripts/run_watch.sh YYYY-MM-DD /custom/run-base /path/to/SteamTracking
+scripts/run_frame_watch.sh YYYY-MM-DD /custom/run-base /path/to/SteamTracking
 ```
+
+Use `scripts/run_watch.sh` when you explicitly want the broader all-hardware view or when debugging an individual source helper.
 
 ## Repository Layout
 
@@ -99,13 +100,13 @@ chmod +x scripts/*.sh
 
 `scripts/check_steamtracking.sh` fast-forwards this checkout before scanning and records the before/after commit in each run.
 
-4. Run a watch pass:
+4. Run a Frame-focused watch pass:
 
 ```sh
-scripts/run_watch.sh 2026-04-25
+scripts/run_frame_watch.sh 2026-07-28
 ```
 
-This creates a dated run folder under `runs/2026-04-25`.
+This creates a dated run folder under `runs/2026-07-28`.
 
 ### Common Path
 
@@ -113,7 +114,7 @@ For the least disruptive Komodo flow, use the dedicated background browser boots
 
 ```sh
 scripts/bootstrap_komodo.sh
-scripts/run_watch.sh 2026-04-25
+scripts/run_frame_watch.sh 2026-07-28
 scripts/close_komodo.sh
 ```
 
@@ -123,7 +124,7 @@ SteamDB can require the same live-browser treatment:
 
 ```sh
 scripts/bootstrap_steamdb.sh
-scripts/run_watch.sh 2026-04-25
+scripts/run_frame_watch.sh 2026-07-28
 scripts/close_steamdb.sh
 ```
 
@@ -170,13 +171,13 @@ Then run either the source directly:
 scripts/check_steamkit_pics.sh runs/2026-05-11
 ```
 
-or the normal watcher:
+or the normal Frame watcher:
 
 ```sh
-scripts/run_watch.sh 2026-05-11
+scripts/run_frame_watch.sh 2026-07-28
 ```
 
-The normal watcher automatically uses `.local/steamkit-session.json`, so routine runs should not ask for a fresh Steam Guard code. If Steam invalidates the refresh token, rerun `scripts/steamkit_auth.sh` with a fresh guard approval to create a new session file.
+The Frame watcher automatically uses `.local/steamkit-session.json`, so routine runs should not ask for a fresh Steam Guard code. If Steam invalidates the refresh token, rerun `scripts/steamkit_auth.sh` with a fresh guard approval to create a new session file.
 
 Outputs:
 
@@ -186,7 +187,7 @@ Outputs:
 - `RUN_DIR/reports/steamkit-pics-detail.md`
 - `RUN_DIR/reports/steamkit-pics-errors.txt`
 
-If the env file and session file are missing, the script writes a non-fatal `missing_credentials` report so the normal watcher still completes. Do not use your main Steam account, do not poll aggressively, and do not extend this helper to protected depot downloads.
+If the env file and session file are missing, the script writes a non-fatal `missing_credentials` report so the Frame watcher still completes. Do not use your main Steam account, do not poll aggressively, and do not extend this helper to protected depot downloads.
 
 ## Output
 
@@ -195,21 +196,27 @@ Each run writes:
 - raw API and HTML snapshots
 - per-source summary files
 - comparison report versus the previous run when available
+- `frame-focus.md`
 - `run-summary.md`
 - `status-draft.md`
 - visual asset ledgers:
-- `discovered-visual-assets.tsv`
-- `retrieved-visual-assets.tsv`
-- `blocked-visual-assets.tsv`
-- `manual-asset-urls.txt`
+  - `discovered-visual-assets.tsv`
+  - `retrieved-visual-assets.tsv`
+  - `blocked-visual-assets.tsv`
+  - `manual-asset-urls.txt`
 - `steamkit-pics-packages.tsv`
 - `steamkit-pics-detail.md`
 - `steamvr-depots-key-lines.txt`
 - `steamos-mirror-key-lines.txt`
 
-The main human-readable file is:
+The first human-readable file to inspect is:
+
+- `RUN_DIR/reports/frame-focus.md`
+
+Then use:
 
 - `RUN_DIR/reports/run-summary.md`
+- `RUN_DIR/reports/compare-vs-*.md`
 
 ## Agent Usage
 
@@ -230,8 +237,9 @@ Then ask Codex to use the `steam-hardware-watch` skill.
 Point the agent at this repo and have it:
 
 1. read `SKILL.md`
-2. use `scripts/run_watch.sh` as the default entry point
+2. use `scripts/run_frame_watch.sh` as the default Frame-focused entry point
 3. summarize results from:
+   - `frame-focus.md`
    - `run-summary.md`
    - `status-draft.md`
    - any `compare-vs-*.md`
@@ -287,11 +295,11 @@ If Komodo needs any manual interaction, switch to that dedicated window when con
 Then run:
 
 ```sh
-scripts/run_watch.sh 2026-04-25
+scripts/run_frame_watch.sh 2026-07-28
 ```
 
 `check_komodo.sh` will automatically pick up `.local/komodo-env.sh` when present.
-`run_watch.sh` will also auto-close the dedicated Komodo browser at the end unless you set:
+`run_frame_watch.sh` will also auto-close the dedicated Komodo browser at the end unless you set:
 
 ```sh
 KOMODO_KEEP_BROWSER_OPEN=1
@@ -399,10 +407,10 @@ If SteamDB needs manual interaction, switch to that dedicated Chrome window, com
 Then run:
 
 ```sh
-scripts/run_watch.sh 2026-04-25
+scripts/run_frame_watch.sh 2026-07-28
 ```
 
-`check_steamdb.sh` automatically picks up `.local/steamdb-env.sh` when present. `run_watch.sh` auto-closes the dedicated SteamDB browser at the end unless you set:
+`check_steamdb.sh` automatically picks up `.local/steamdb-env.sh` when present. `run_frame_watch.sh` auto-closes the dedicated SteamDB browser at the end unless you set:
 
 ```sh
 STEAMDB_KEEP_BROWSER_OPEN=1
@@ -448,6 +456,7 @@ SteamVR content is distributed through SteamPipe depots rather than the SteamOS 
 - `SteamDB` can return a Cloudflare browser challenge to curl and fresh automated browser contexts.
 - `SteamVR` depot contents require a Steam install, Steam console, SteamCMD, or another depot downloader; the helper does not download large depots by default.
 - The SteamOS mirror is public, but package names are not proof of product launch state without corroborating evidence.
+- `/tmp/SteamTracking-*` checkouts can become invalid even when source files still exist. If `git -C /tmp/SteamTracking-* status` fails, clone a fresh shallow checkout and rerun with that path.
 - We can currently discover and report blocked media URLs even when we cannot download them automatically.
 - Exported storage state may still be insufficient for Cloudflare-protected Komodo assets.
 - Live trusted browser attach is currently the strongest repeatable fallback for protected Komodo media.
@@ -458,8 +467,8 @@ SteamVR content is distributed through SteamPipe depots rather than the SteamOS 
 
 Normal use:
 
-1. run `scripts/run_watch.sh`
-2. read `run-summary.md`
+1. run `scripts/run_frame_watch.sh`
+2. read `frame-focus.md`, then `run-summary.md`
 3. inspect the comparison report if something changed
 4. update `status/current.md` and `status/evidence.jsonl` only for material changes
 
